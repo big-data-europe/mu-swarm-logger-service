@@ -2,7 +2,7 @@ import argparse
 import asyncio
 from enforce import runtime_validation
 
-from dockersyncgraph.docker import APIClient
+from dockersyncgraph.aiodocker import APIClient
 from dockersyncgraph.events import list_handlers, new_event, run_on_startup_subroutines
 from dockersyncgraph.sparql import SPARQLClient, prefixes
 

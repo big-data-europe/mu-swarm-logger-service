@@ -5,7 +5,7 @@ import importlib
 import os, sys
 from typing import Callable, Dict, List
 
-from dockersyncgraph.docker import APIClient
+from dockersyncgraph.aiodocker import APIClient
 from dockersyncgraph.sparql import SPARQLClient
 
 
