@@ -2,8 +2,8 @@ import asyncio
 from datetime import datetime
 from uuid import uuid1
 
-from dockersyncgraph.events import ContainerEvent, register_event, on_startup
-from dockersyncgraph.sparql import SPARQLClient, escape_string
+from muswarmlogger.events import ContainerEvent, register_event, on_startup
+from muswarmlogger.sparql import SPARQLClient, escape_string
 
 
 async def create_container_log_concept(client, base_concept, container):

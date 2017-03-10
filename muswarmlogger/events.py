@@ -5,8 +5,8 @@ import importlib
 import os, sys
 from typing import Callable, Dict, List
 
-from dockersyncgraph.aiodocker import APIClient
-from dockersyncgraph.sparql import SPARQLClient
+from muswarmlogger.aiodocker import APIClient
+from muswarmlogger.sparql import SPARQLClient
 
 
 class Event:

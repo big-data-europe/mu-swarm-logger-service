@@ -2,4 +2,4 @@
 
 import runpy
 
-runpy.run_module('dockersyncgraph')
+runpy.run_module('muswarmlogger')

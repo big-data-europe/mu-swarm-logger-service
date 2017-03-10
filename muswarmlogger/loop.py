@@ -2,9 +2,9 @@ import argparse
 import asyncio
 from enforce import runtime_validation
 
-from dockersyncgraph.aiodocker import APIClient
-from dockersyncgraph.events import list_handlers, new_event, run_on_startup_subroutines
-from dockersyncgraph.sparql import SPARQLClient, prefixes
+from muswarmlogger.aiodocker import APIClient
+from muswarmlogger.events import list_handlers, new_event, run_on_startup_subroutines
+from muswarmlogger.sparql import SPARQLClient, prefixes
 
 async def run_loop(loop=None, sparql_endpoint=None, debug=False):
     with SPARQLClient(sparql_endpoint, prefixes=prefixes, loop=loop) as sparql_client, \

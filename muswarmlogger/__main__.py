@@ -1,7 +1,7 @@
-from dockersyncgraph.loop import main
+from muswarmlogger.loop import main
 
 # Register all events
-import dockersyncgraph.musemtech
+import muswarmlogger.musemtech
 
 try:
     main()
