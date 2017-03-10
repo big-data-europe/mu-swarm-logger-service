@@ -2,13 +2,14 @@ import asyncio
 from datetime import datetime
 from uuid import uuid1
 
+from muswarmlogger.aiodocker import APIClient
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
 from muswarmlogger.sparql import SPARQLClient, escape_string
 
 
-async def create_container_log_concept(client, base_concept, container):
+async def create_container_log_concept(sparql, base_concept, container):
     concept = "%s/container/%s" % (base_concept, container['Id'][:12])
-    resp = await client.query("""
+    resp = await sparql.query("""
         ASK
         FROM <%(graph)s>
         WHERE {
@@ -19,7 +20,7 @@ async def create_container_log_concept(client, base_concept, container):
             "concept": concept,
         })
     if not resp['boolean']:
-        resp = await client.update("""
+        resp = await sparql.update("""
             WITH <%(graph)s>
             INSERT DATA {
                 <%(concept)s> dct:title %(name)s .
@@ -32,13 +33,14 @@ async def create_container_log_concept(client, base_concept, container):
         print("-- Created concept:", concept)
     return concept
 
-async def save_container_logs(client, container, since, sparql_client, base_concept):
+
+async def save_container_logs(client, container, since, sparql, base_concept):
     logs = await client.logs(container, stream=True, timestamps=True, since=since)
     async for line in logs:
         timestamp, log = line.decode().split(" ", 1)
         uuid = uuid1(0)
         concept = "%s/log/%s" % (base_concept, uuid)
-        resp = await sparql_client.update("""
+        resp = await sparql.update("""
             WITH <%(graph)s>
             INSERT DATA {
                 <%(base_concept)s> swarmui:logLine <%(concept)s> .
@@ -57,8 +59,9 @@ async def save_container_logs(client, container, since, sparql_client, base_conc
             })
         print("-- Log", concept, "--", log.strip())
 
+
 @register_event
-async def start_logging_container(event: ContainerEvent, client: SPARQLClient):
+async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
     if not event.status == "start":
         return
     concept = event.attributes.get('muLoggingConcept')
@@ -67,21 +70,22 @@ async def start_logging_container(event: ContainerEvent, client: SPARQLClient):
     container = await event.container
     if container['Config']['Tty']:
         return
-    container_concept = await create_container_log_concept(client, concept, container)
-    asyncio.ensure_future(save_container_logs(event.client, event.id, event.time, client, container_concept))
+    container_concept = await create_container_log_concept(sparql, concept, container)
+    asyncio.ensure_future(save_container_logs(event.client, event.id, event.time, sparql, container_concept))
     print("-- Started logging to", container_concept)
 
+
 @on_startup
-async def start_logging_existing_containers(docker_client, sparql_client):
+async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLClient):
     now = datetime.utcnow()
-    containers = await docker_client.containers()
+    containers = await docker.containers()
     for container in containers:
-        container = await docker_client.inspect_container(container['Id'])
+        container = await docker.inspect_container(container['Id'])
         concept = container['Config']['Labels'].get('muLoggingConcept')
         if not concept:
             return
         if container['Config']['Tty']:
             return
-        container_concept = await create_container_log_concept(sparql_client, concept, container)
-        asyncio.ensure_future(save_container_logs(docker_client, container['Id'], now, sparql_client, container_concept))
+        container_concept = await create_container_log_concept(sparql, concept, container)
+        asyncio.ensure_future(save_container_logs(docker, container['Id'], now, sparql, container_concept))
         print("-- Started logging to", container_concept)
