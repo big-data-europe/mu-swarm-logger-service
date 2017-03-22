@@ -7,7 +7,7 @@ from .prefix import Prefix
 __all__ = ['SPARQLClient', 'SPARQLRequestFailed']
 
 
-class SPARQLRequestFailed(aiohttp.HttpProcessingError):
+class SPARQLRequestFailed(aiohttp.http.HttpProcessingError):
     def __init__(self, code=None, message=None, explanation=None):
         super(SPARQLRequestFailed, self).__init__(
             code=code, message=message)

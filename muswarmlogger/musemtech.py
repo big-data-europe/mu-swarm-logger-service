@@ -1,8 +1,8 @@
+from aiodockerpy import APIClient
 import asyncio
 from datetime import datetime
 from uuid import uuid1
 
-from muswarmlogger.aiodocker import APIClient
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
 from muswarmlogger.sparql import SPARQLClient, escape_string
 

@@ -1,8 +1,8 @@
+from aiodockerpy import APIClient
 import argparse
 import asyncio
 import logging
 
-from muswarmlogger.aiodocker import APIClient
 from muswarmlogger.events import (
     list_handlers, new_event, run_on_startup_subroutines)
 from muswarmlogger.sparql import SPARQLClient, prefixes

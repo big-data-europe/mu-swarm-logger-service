@@ -1,9 +1,8 @@
-import docker.errors
+from aiodockerpy import APIClient
 import importlib
 import os, sys
 from typing import Any, Callable, Dict, List
 
-from muswarmlogger.aiodocker import APIClient
 from muswarmlogger.sparql import SPARQLClient
 
 
