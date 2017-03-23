@@ -25,7 +25,7 @@ class SPARQLClient(aiohttp.ClientSession):
             prefixes=None, loop=None):
         super(SPARQLClient, self).__init__(loop=loop)
         self.endpoint = endpoint or ENV['MU_SPARQL_ENDPOINT']
-        self.update_endpoint = update_endpoint or endpoint
+        self.update_endpoint = update_endpoint or self.endpoint
         self.prefixes = prefixes
 
     def _make_query(self, query):
