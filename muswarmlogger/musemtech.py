@@ -2,6 +2,7 @@ from aiodockerpy import APIClient
 import asyncio
 from datetime import datetime
 import logging
+from os import environ as ENV
 from uuid import uuid1
 
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
@@ -9,6 +10,7 @@ from muswarmlogger.sparql import SPARQLClient, escape_string
 
 
 logger = logging.getLogger(__name__)
+graph = ENV['MU_APPLICATION_GRAPH']
 
 
 async def create_container_log_concept(sparql, base_concept, container):
@@ -20,7 +22,7 @@ async def create_container_log_concept(sparql, base_concept, container):
             <%(concept)s> ?p ?o .
         }
         """ % {
-            "graph": "http://mu.semte.ch/application",
+            "graph": graph,
             "concept": concept,
         })
     if not resp['boolean']:
@@ -30,7 +32,7 @@ async def create_container_log_concept(sparql, base_concept, container):
                 <%(concept)s> dct:title %(name)s .
             }
             """ % {
-                "graph": "http://mu.semte.ch/application",
+                "graph": graph,
                 "concept": concept,
                 "name": escape_string(container['Name'][1:]),
             })
@@ -55,7 +57,7 @@ async def save_container_logs(client, container, since, sparql, base_concept):
                 dct:title %(log)s .
             }
             """ % {
-                "graph": "http://mu.semte.ch/application",
+                "graph": graph,
                 "base_concept": base_concept,
                 "concept": concept,
                 "uuid": escape_string(str(uuid)),
