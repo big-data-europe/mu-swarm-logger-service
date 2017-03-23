@@ -1,5 +1,4 @@
 from aiodockerpy import APIClient
-import argparse
 import asyncio
 import logging
 
@@ -8,7 +7,7 @@ from muswarmlogger.events import (
 from muswarmlogger.sparql import SPARQLClient, prefixes
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 async def run_loop(sparql_endpoint=None, debug=False):
@@ -26,18 +25,3 @@ async def run_loop(sparql_endpoint=None, debug=False):
                 logger.exception(
                     "An error occurred during a coroutine execution. "
                     "The loop will not be interrupted.")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug",
-        action="store_true", help="Debug mode (reload modules automatically")
-    parser.add_argument("--sparql-endpoint",
-        type=str, help="SPARQL endpoint (MU_SPARQL_ENDPOINT by default)")
-    opt = parser.parse_args()
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(run_loop(
-            sparql_endpoint=opt.sparql_endpoint, debug=opt.debug))
-    finally:
-        loop.close()

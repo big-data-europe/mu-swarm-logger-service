@@ -1,10 +1,15 @@
 import aiohttp
+import logging
 from os import environ as ENV
+from textwrap import dedent
 from typing import Optional
 
 from .prefix import Prefix
 
 __all__ = ['SPARQLClient', 'SPARQLRequestFailed']
+
+
+logger = logging.getLogger(__name__)
 
 
 class SPARQLRequestFailed(aiohttp.http.HttpProcessingError):
@@ -28,7 +33,7 @@ class SPARQLClient(aiohttp.ClientSession):
         self.update_endpoint = update_endpoint or self.endpoint
         self.prefixes = prefixes
 
-    def _make_query(self, query):
+    def _make_query(self, query: str) -> str:
         if self.prefixes == None:
             return query
         else:
@@ -36,16 +41,18 @@ class SPARQLClient(aiohttp.ClientSession):
                 "PREFIX %s: <%s>" % (x.label, x.base_uri)
                 for x in vars(self.prefixes).values() if isinstance(x, Prefix)
             ]
-            lines.extend(["", query])
+            lines.extend(["", dedent(query).strip()])
             return "\n".join(lines)
 
-    async def query(self, query: str, options: dict = {}):
+    async def query(self, query: str, options: dict = {}) -> dict:
         headers = {
             "Accept": "application/json",
         }
-        async with self.post(self.endpoint,
-                data={"query": self._make_query(query)}, headers=headers) \
-                as resp:
+        full_query = self._make_query(query)
+        logger.debug("Sending SPARQL query to %s: %r",
+                     self.endpoint, full_query)
+        async with self.post(self.endpoint, data={"query": full_query},
+                             headers=headers) as resp:
             try:
                 resp.raise_for_status()
             except aiohttp.HttpProcessingError as exc:
@@ -54,13 +61,15 @@ class SPARQLClient(aiohttp.ClientSession):
                     code=exc.code, message=exc.message, explanation=explanation)
             return await resp.json()
 
-    async def update(self, query: str, options: dict = {}):
+    async def update(self, query: str, options: dict = {}) -> dict:
         headers = {
             "Accept": "application/json",
         }
-        async with self.post(self.update_endpoint,
-                data={"update": self._make_query(query)}, headers=headers) \
-                as resp:
+        full_query = self._make_query(query)
+        logger.debug("Sending SPARQL query to %s: %r",
+                     self.endpoint, full_query)
+        async with self.post(self.update_endpoint, data={"update": full_query},
+                             headers=headers) as resp:
             try:
                 resp.raise_for_status()
             except aiohttp.HttpProcessingError as exc:

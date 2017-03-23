@@ -1,10 +1,14 @@
 from aiodockerpy import APIClient
 import asyncio
 from datetime import datetime
+import logging
 from uuid import uuid1
 
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
 from muswarmlogger.sparql import SPARQLClient, escape_string
+
+
+logger = logging.getLogger(__name__)
 
 
 async def create_container_log_concept(sparql, base_concept, container):
@@ -30,7 +34,7 @@ async def create_container_log_concept(sparql, base_concept, container):
                 "concept": concept,
                 "name": escape_string(container['Name'][1:]),
             })
-        print("-- Created concept:", concept)
+        logger.info("Created logging concept: %s", concept)
     return concept
 
 
@@ -57,7 +61,7 @@ async def save_container_logs(client, container, since, sparql, base_concept):
                 "timestamp": escape_string(timestamp),
                 "log": escape_string(log),
             })
-        print("-- Log", concept, "--", log.strip())
+        logger.debug("Log into %s: %s", concept, log.strip())
 
 
 @register_event
@@ -72,7 +76,7 @@ async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
         return
     container_concept = await create_container_log_concept(sparql, concept, container)
     asyncio.ensure_future(save_container_logs(event.client, event.id, event.time, sparql, container_concept))
-    print("-- Started logging to", container_concept)
+    logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
 
 
 @on_startup
@@ -88,4 +92,4 @@ async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLCli
             return
         container_concept = await create_container_log_concept(sparql, concept, container)
         asyncio.ensure_future(save_container_logs(docker, container['Id'], now, sparql, container_concept))
-        print("-- Started logging to", container_concept)
+        logger.info("Logging container %s into %s", container['Id'][:12], container_concept)

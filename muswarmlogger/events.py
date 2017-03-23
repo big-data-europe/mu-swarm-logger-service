@@ -1,11 +1,13 @@
 from aiodockerpy import APIClient
 import importlib
+import logging
 import os, sys
 from typing import Any, Callable, Dict, List
 
 from muswarmlogger.sparql import SPARQLClient
 
 
+logger = logging.getLogger(__name__)
 on_startup_subroutines = []
 event_handlers = []
 module_mtimes = {}
@@ -65,7 +67,7 @@ def new_event(client: APIClient, data: Dict[str, Any]) -> None:
     if event_type == "container":
         return ContainerEvent(client, data)
     else:
-        print("Not recognized event (%s):" % event_type, data, file=sys.stderr)
+        logger.debug("Unrecognized event (%s): %s", event_type, data)
         return Event(client, data)
 
 
@@ -92,7 +94,7 @@ def list_handlers(event: Event, reload: bool = False) -> None:
     if reload:
         changes = _detect_changes(handlers)
         if changes:
-            print("Reloading modules:", ", ".join(changes.keys()), file=sys.stderr)
+            logger.debug("Reloading modules: %s", ", ".join(changes.keys()))
             _reload_modules(changes)
             handlers = _filter_handlers(event)
     return handlers
