@@ -89,9 +89,9 @@ async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLCli
         container = await docker.inspect_container(container['Id'])
         concept = container['Config']['Labels'].get('muLoggingConcept')
         if not concept:
-            return
+            continue
         if container['Config']['Tty']:
-            return
+            continue
         container_concept = await create_container_log_concept(sparql, concept, container)
         asyncio.ensure_future(save_container_logs(docker, container['Id'], now, sparql, container_concept))
         logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
