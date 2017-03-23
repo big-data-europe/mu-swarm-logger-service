@@ -44,6 +44,7 @@ async def save_container_logs(client, container, since, sparql, base_concept):
         timestamp, log = line.decode().split(" ", 1)
         uuid = uuid1(0)
         concept = "%s/log/%s" % (base_concept, uuid)
+        logger.debug("Log into %s: %s", concept, log.strip())
         resp = await sparql.update("""
             WITH <%(graph)s>
             INSERT DATA {
@@ -61,7 +62,8 @@ async def save_container_logs(client, container, since, sparql, base_concept):
                 "timestamp": escape_string(timestamp),
                 "log": escape_string(log),
             })
-        logger.debug("Log into %s: %s", concept, log.strip())
+    logger.info("Finished logging into %s (container %s is stopped)",
+                base_concept, container[:12])
 
 
 @register_event
