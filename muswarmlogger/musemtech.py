@@ -12,7 +12,6 @@ from muswarmlogger.event2rdf import Event2RDF
 
 logger = logging.getLogger(__name__)
 graph = ENV['MU_APPLICATION_GRAPH']
-timezone = ENV["TIMEZONE"]
 
 
 async def create_container_log_concept(sparql, base_concept, container):
@@ -72,7 +71,7 @@ async def save_container_logs(client, container, since, sparql, base_concept):
 
 @register_event
 async def store_events(event: ContainerEvent, sparql: SPARQLClient):
-    e2rdf = Event2RDF(timezone=timezone)
+    e2rdf = Event2RDF()
     e2rdf.add_event_to_graph(event.data)
     ntriples = e2rdf.serialize().decode("utf-8")
     await sparql.update("""

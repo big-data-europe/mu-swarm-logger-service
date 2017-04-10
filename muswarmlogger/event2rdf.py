@@ -1,5 +1,4 @@
 import datetime
-import pytz
 
 from rdflib import Graph, Literal, BNode, RDF
 from rdflib.namespace import OWL, XSD, RDFS
@@ -11,8 +10,7 @@ DOCKEVENT_ACTIONS = Namespace('http://ontology.aksw.org/dockevent/actions/')
 DOCKEVENT_ACTORS = Namespace('http://ontology.aksw.org/dockevent/actors/')
 
 class Event2RDF(object):
-    def __init__(self, timezone="Europe/Berlin"):
-        self.timezone = pytz.timezone(timezone)
+    def __init__(self):
         self.store = self.init_store()
 
     def init_store(self):
@@ -33,7 +31,7 @@ class Event2RDF(object):
 
         _time = event.get("time", "")
         _timeNano = event.get("timeNano", "")
-        _datetime = datetime.datetime.fromtimestamp(int(_time), self.timezone)
+        _datetime = datetime.datetime.fromtimestamp(int(_time))
 
         event_id = "%s_%s" % (event_id, _timeNano)
         event_node = self.store.resource("dockevent:%s" % event_id)
