@@ -33,7 +33,6 @@ class Event2RDF(object):
         _timeNano = event.get("timeNano", "")
         _datetime = datetime.datetime.fromtimestamp(int(_time))
 
-        event_id = "%s_%s" % (event_id, _timeNano)
         event_node = self.store.resource("dockevent:%s" % event_id)
         event_node.add(DOCKEVENT.eventId, Literal(event_id, datatype=XSD.string))
         event_node.add(DOCKEVENT.time, Literal(_time, datatype=XSD.int))
@@ -83,7 +82,6 @@ class Event2RDF(object):
         actor = event.get("Actor", "")
         if actor != "":
             actor_id = actor.get("ID", "")
-            actor_id = "%s_%s" % (actor_id, _timeNano)
             actor_node = self.store.resource("dockevent_actors:%s" % actor_id)
             actor_node.add(DOCKEVENT.actorId, Literal(actor_id, datatype=XSD.dateTime))
             actor_attributes = actor.get("Attributes", "")
