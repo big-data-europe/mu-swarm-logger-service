@@ -8,6 +8,8 @@ DOCKEVENT = Namespace('http://ontology.aksw.org/dockevent/')
 DOCKEVENT_TYPES = Namespace('http://ontology.aksw.org/dockevent/types/')
 DOCKEVENT_ACTIONS = Namespace('http://ontology.aksw.org/dockevent/actions/')
 DOCKEVENT_ACTORS = Namespace('http://ontology.aksw.org/dockevent/actors/')
+DOCKCONTAINER = Namespace('http://ontology.aksw.org/dockcontainer/')
+DOCKCONTAINER_NETWORK = Namespace('http://ontology.aksw.org/dockcontainer/network/')
 
 class Event2RDF(object):
     def __init__(self):
@@ -24,7 +26,7 @@ class Event2RDF(object):
         store.bind("dockevent_actors", DOCKEVENT_ACTORS)
         return store
 
-    def add_event_to_graph(self, event):
+    def add_event_to_graph(self, event, container=None):
         event_id = event.get("id", "")
         if event_id == "":
             return None
@@ -78,6 +80,20 @@ class Event2RDF(object):
             event_node.add(DOCKEVENT.action, DOCKEVENT_ACTIONS.die)
         elif event_action_type == "destroy":
             event_node.add(DOCKEVENT.action, DOCKEVENT_ACTIONS.destroy)
+
+        if container is not None:
+            container_node = self.store.resource("dockcontainer:%s" % container["Id"])
+            container_node.add(DOCKCONTAINER.id, Literal(container["Id"], datatype=XSD.string))
+            container_node.add(DOCKCONTAINER.name, Literal(container["Name"], datatype=XSD.string))
+            for label, value in container["Config"]["Labels"].items():
+                container_node.add(DOCKCONTAINER.label, Literal("%s=%s" % (label, value), datatype=XSD.string))
+            event_node.add(DOCKEVENT.container, container_node)
+            for name, network in container["NetworkSettings"]["Networks"].items():
+                network_node = self.store.resource("dockcontainer_network:%s" % network["NetworkID"])
+                network_node.add(DOCKCONTAINER_NETWORK.name, Literal(name, datatype=XSD.string))
+                network_node.add(DOCKCONTAINER_NETWORK.id, Literal(network["NetworkID"], datatype=XSD.string))
+                network_node.add(DOCKCONTAINER_NETWORK.ipAddress, Literal(network["IPAddress"], datatype=XSD.string))
+                container_node.add(DOCKCONTAINER.network, network_node)
 
         actor = event.get("Actor", "")
         if actor != "":

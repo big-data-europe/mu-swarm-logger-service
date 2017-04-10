@@ -71,8 +71,9 @@ async def save_container_logs(client, container, since, sparql, base_concept):
 
 @register_event
 async def store_events(event: ContainerEvent, sparql: SPARQLClient):
+    container = (await event.container) if event.status == "start" else None
     e2rdf = Event2RDF()
-    e2rdf.add_event_to_graph(event.data)
+    e2rdf.add_event_to_graph(event.data, container=container)
     ntriples = e2rdf.serialize().decode("utf-8")
     await sparql.update("""
         WITH <%(graph)s>
