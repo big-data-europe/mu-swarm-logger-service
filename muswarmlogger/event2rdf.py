@@ -35,6 +35,7 @@ class Event2RDF(object):
         _timeNano = event.get("timeNano", "")
         _datetime = datetime.datetime.fromtimestamp(int(_time))
 
+        event_id = "%s_%s" % (event_id, _timeNano)
         event_node = self.store.resource("dockevent:%s" % event_id)
         event_node.add(DOCKEVENT.eventId, Literal(event_id, datatype=XSD.string))
         event_node.add(DOCKEVENT.time, Literal(_time, datatype=XSD.int))
@@ -82,14 +83,16 @@ class Event2RDF(object):
             event_node.add(DOCKEVENT.action, DOCKEVENT_ACTIONS.destroy)
 
         if container is not None:
-            container_node = self.store.resource("dockcontainer:%s" % container["Id"])
+            container_id = "%s_%s" % (container["Id"], _timeNano)
+            container_node = self.store.resource("dockcontainer:%s" % container_id)
             container_node.add(DOCKCONTAINER.id, Literal(container["Id"], datatype=XSD.string))
             container_node.add(DOCKCONTAINER.name, Literal(container["Name"], datatype=XSD.string))
             for label, value in container["Config"]["Labels"].items():
                 container_node.add(DOCKCONTAINER.label, Literal("%s=%s" % (label, value), datatype=XSD.string))
             event_node.add(DOCKEVENT.container, container_node)
             for name, network in container["NetworkSettings"]["Networks"].items():
-                network_node = self.store.resource("dockcontainer_network:%s" % network["NetworkID"])
+                network_id = "%s_%s" % (network["NetworkID"], _timeNano)
+                network_node = self.store.resource("dockcontainer_network:%s" % network_id)
                 network_node.add(DOCKCONTAINER_NETWORK.name, Literal(name, datatype=XSD.string))
                 network_node.add(DOCKCONTAINER_NETWORK.id, Literal(network["NetworkID"], datatype=XSD.string))
                 network_node.add(DOCKCONTAINER_NETWORK.ipAddress, Literal(network["IPAddress"], datatype=XSD.string))
@@ -98,6 +101,7 @@ class Event2RDF(object):
         actor = event.get("Actor", "")
         if actor != "":
             actor_id = actor.get("ID", "")
+            actor_id = "%s_%s" % (actor_id, _timeNano)
             actor_node = self.store.resource("dockevent_actors:%s" % actor_id)
             actor_node.add(DOCKEVENT.actorId, Literal(actor_id, datatype=XSD.dateTime))
             actor_attributes = actor.get("Attributes", "")
