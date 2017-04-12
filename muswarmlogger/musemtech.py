@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 graph = ENV['MU_APPLICATION_GRAPH']
 
 
-async def create_container_log_concept(sparql, base_concept, container):
-    concept = "%s/container/%s" % (base_concept, container['Id'][:12])
+async def create_container_log_concept(sparql, container):
+    concept = "docklogs:%s" % container['Id']
     resp = await sparql.query("""
         ASK
         FROM <%(graph)s>
@@ -90,13 +90,12 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
 async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
     if not event.status == "start":
         return
-    concept = event.attributes.get('muLoggingConcept')
-    if not concept:
+    if not event.attributes.get('LOG'):
         return
     container = await event.container
     if container['Config']['Tty']:
         return
-    container_concept = await create_container_log_concept(sparql, concept, container)
+    container_concept = await create_container_log_concept(sparql, container)
     asyncio.ensure_future(save_container_logs(event.client, event.id, event.time, sparql, container_concept))
     logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
 
@@ -107,11 +106,10 @@ async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLCli
     containers = await docker.containers()
     for container in containers:
         container = await docker.inspect_container(container['Id'])
-        concept = container['Config']['Labels'].get('muLoggingConcept')
-        if not concept:
+        if not container['Config']['Labels'].get('LOG'):
             continue
         if container['Config']['Tty']:
             continue
-        container_concept = await create_container_log_concept(sparql, concept, container)
+        container_concept = await create_container_log_concept(sparql, container)
         asyncio.ensure_future(save_container_logs(docker, container['Id'], now, sparql, container_concept))
         logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
