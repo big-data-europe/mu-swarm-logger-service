@@ -1,10 +1,9 @@
 from aiodockerpy import APIClient
+from aiosparql.client import SPARQLClient
 import importlib
 import logging
 import os, sys
 from typing import Any, Callable, Dict, List
-
-from muswarmlogger.sparql import SPARQLClient
 
 
 logger = logging.getLogger(__name__)
