@@ -15,14 +15,14 @@ docker run -it --rm \
     mu-swarm-logger-service
 ```
 
-All the containers that have a label `muLoggingConcept` will be logged to the
-concept in value of this label. For instance:
+All the containers that have a label `LOG` will be logged to the concept in
+value of this label. For instance:
 
 ```
-docker run -i --rm -p 80:80 -l muLoggingConcept=http://some/nginx nginx
+docker run -i --rm -p 80:80 -l LOG=1 nginx
 ```
 
-Will make the logs of Nginx to be logged to http://some/nginx.
+Will make the logs of Nginx to be logged to the database.
 
 
 ### Overrides
