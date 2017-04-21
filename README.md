@@ -49,3 +49,7 @@ docker run -it --rm \
     -e DOCKER_MACHINE_NAME="mhs-demo0" \
     mu-swarm-logger-service
 ```
+
+### Notes
+
+Additional information (e.g. events ontology) can be found in [Documentation](./docs/README.md).
