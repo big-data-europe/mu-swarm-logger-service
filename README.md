@@ -27,10 +27,51 @@ Will make the logs of Nginx to be logged to the database.
 
 ### Overrides
 
- *  The default graph can be overridden by passing the environment variable
+ *  The default graph (http://mu.semte.ch/application) can be overridden by passing the environment variable
     `MU_APPLICATION_GRAPH` to the container.
- *  The default SPARQL endpoint can be overridden by passing the environment
+```
+version: "2.1"
+services:
+  logger:
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=tcp://192.168.122.2:4000
+      - MU_APPLICATION_GRAPH=http://example.com/
+  database:
+    image: tenforce/virtuoso:1.1.0-virtuoso7.2.4
+    environment:
+      SPARQL_UPDATE: "true"
+      DEFAULT_GRAPH: "http://mu.semte.ch/application"
+    ports:
+      - "8890:8890"
+    volumes:
+      - ./data/db:/data
+```
+ *  The default SPARQL endpoint (i.e. database to which the events are written) can be overridden by passing the environment
     variable `MU_SPARQL_ENDPOINT` to the container.
+```
+version: "2.1"
+services:
+  logger:
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_HOST=tcp://192.168.122.2:4000
+      - MU_APPLICATION_GRAPH=http://example.com/
+      - MU_SPARQL_ENDPOINT=http://localhost:8890/
+  database:
+    image: tenforce/virtuoso:1.1.0-virtuoso7.2.4
+    environment:
+      SPARQL_UPDATE: "true"
+      DEFAULT_GRAPH: "http://mu.semte.ch/application"
+    ports:
+      - "8890:8890"
+    volumes:
+      - ./data/db:/data
+```
 
 Example on Docker Swarm
 -----------------------
@@ -48,6 +89,12 @@ docker run -it --rm \
     -e DOCKER_CERT_PATH=/certs \
     -e DOCKER_MACHINE_NAME="mhs-demo0" \
     mu-swarm-logger-service
+```
+
+A docker-compose snippet can be found in a separate file, use this command to run it on your localhost (modify DOCKER_HOST to point to your docker engine/swarm):
+```
+docker-compose build
+docker-compose up
 ```
 
 ### Notes
