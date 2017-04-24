@@ -38,10 +38,10 @@ class Event2RDF(object):
         event_id = "%s_%s" % (event_id, _timeNano)
         event_node = self.store.resource("dockevent:%s" % event_id)
         event_node.add(RDF.type, DOCKEVENT_TYPES.event)
-        event_node.add(DOCKEVENT.eventId, Literal(event_id, datatype=XSD.string))
+        event_node.add(DOCKEVENT.eventId, Literal(event_id))
         event_node.add(DOCKEVENT.time, Literal(_time, datatype=XSD.int))
         event_node.add(DOCKEVENT.timeNano, Literal(_timeNano, datatype=XSD.int))
-        event_node.add(DOCKEVENT.dateTime, Literal(_datetime.isoformat(), datatype=XSD.string))
+        event_node.add(DOCKEVENT.dateTime, Literal(_datetime.isoformat()))
 
 
         event_type = event.get("Type", "")
@@ -58,7 +58,7 @@ class Event2RDF(object):
         if ":" in event_action:
             event_action_type = event_action.split(":")[0]
             event_action_extra = event_action.split(":")[-1].strip()
-            event_node.add(DOCKEVENT.actionExtra, Literal(event_action_extra, datatype=XSD.string))
+            event_node.add(DOCKEVENT.actionExtra, Literal(event_action_extra))
         else:
             event_action_type = event_action
 
@@ -86,19 +86,19 @@ class Event2RDF(object):
         if container is not None:
             container_id = "%s_%s" % (container["Id"], _timeNano)
             container_node = self.store.resource("dockcontainer:%s" % container_id)
-            container_node.add(DOCKCONTAINER.id, Literal(container["Id"], datatype=XSD.string))
-            container_node.add(DOCKCONTAINER.name, Literal(container["Name"], datatype=XSD.string))
+            container_node.add(DOCKCONTAINER.id, Literal(container["Id"]))
+            container_node.add(DOCKCONTAINER.name, Literal(container["Name"]))
             for label, value in container["Config"]["Labels"].items():
-                container_node.add(DOCKCONTAINER.label, Literal("%s=%s" % (label, value), datatype=XSD.string))
+                container_node.add(DOCKCONTAINER.label, Literal("%s=%s" % (label, value)))
             for env_with_value in container["Config"]["Env"]:
                 container_node.add(DOCKCONTAINER.env, Literal(env_with_value))
             event_node.add(DOCKEVENT.container, container_node)
             for name, network in container["NetworkSettings"]["Networks"].items():
                 network_id = "%s_%s" % (network["NetworkID"], _timeNano)
                 network_node = self.store.resource("dockcontainer_network:%s" % network_id)
-                network_node.add(DOCKCONTAINER_NETWORK.name, Literal(name, datatype=XSD.string))
-                network_node.add(DOCKCONTAINER_NETWORK.id, Literal(network["NetworkID"], datatype=XSD.string))
-                network_node.add(DOCKCONTAINER_NETWORK.ipAddress, Literal(network["IPAddress"], datatype=XSD.string))
+                network_node.add(DOCKCONTAINER_NETWORK.name, Literal(name))
+                network_node.add(DOCKCONTAINER_NETWORK.id, Literal(network["NetworkID"]))
+                network_node.add(DOCKCONTAINER_NETWORK.ipAddress, Literal(network["IPAddress"]))
                 container_node.add(DOCKCONTAINER.network, network_node)
 
         actor = event.get("Actor", "")
@@ -110,17 +110,17 @@ class Event2RDF(object):
             actor_attributes = actor.get("Attributes", "")
             if actor_attributes != "":
                 image = actor_attributes.get("image", "")
-                actor_node.add(DOCKEVENT.image, Literal(image, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.image, Literal(image))
                 name = actor_attributes.get("name", "")
-                actor_node.add(DOCKEVENT.name, Literal(name, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.name, Literal(name))
                 swarm_ip_port = actor_attributes.get("node.addr", "")
-                actor_node.add(DOCKEVENT.nodeIpPort, Literal(swarm_ip_port, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.nodeIpPort, Literal(swarm_ip_port))
                 node_id = actor_attributes.get("node.id", "")
-                actor_node.add(DOCKEVENT.nodeId, Literal(node_id, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.nodeId, Literal(node_id))
                 node_ip = actor_attributes.get("node.ip", "")
-                actor_node.add(DOCKEVENT.nodeIp, Literal(node_ip, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.nodeIp, Literal(node_ip))
                 node_name = actor_attributes.get("node.name", "")
-                actor_node.add(DOCKEVENT.nodeName, Literal(node_name, datatype=XSD.string))
+                actor_node.add(DOCKEVENT.nodeName, Literal(node_name))
             event_node.add(DOCKEVENT.actor, actor_node)
 
         _from = event.get("from", "")
