@@ -90,6 +90,8 @@ class Event2RDF(object):
             container_node.add(DOCKCONTAINER.name, Literal(container["Name"], datatype=XSD.string))
             for label, value in container["Config"]["Labels"].items():
                 container_node.add(DOCKCONTAINER.label, Literal("%s=%s" % (label, value), datatype=XSD.string))
+            for env_with_value in container["Config"]["Env"]:
+                container_node.add(DOCKCONTAINER.env, Literal(env_with_value))
             event_node.add(DOCKEVENT.container, container_node)
             for name, network in container["NetworkSettings"]["Networks"].items():
                 network_id = "%s_%s" % (network["NetworkID"], _timeNano)
