@@ -39,8 +39,8 @@ class Event2RDF(object):
         event_node = self.store.resource("dockevent:%s" % event_id)
         event_node.add(RDF.type, DOCKEVENT_TYPES.event)
         event_node.add(DOCKEVENT.eventId, Literal(event_id))
-        event_node.add(DOCKEVENT.time, Literal(_time, datatype=XSD.int))
-        event_node.add(DOCKEVENT.timeNano, Literal(_timeNano, datatype=XSD.int))
+        event_node.add(DOCKEVENT.time, Literal(_time))
+        event_node.add(DOCKEVENT.timeNano, Literal(_timeNano))
         event_node.add(DOCKEVENT.dateTime, Literal(_datetime.isoformat()))
 
 
