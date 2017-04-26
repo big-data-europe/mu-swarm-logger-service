@@ -127,5 +127,6 @@ def _filter_handlers(event: Event):
     return [
         event_handler
         for event_handler in event_handlers
-        if event_handler.__annotations__['event'] in (event_type, Event)
+        if 'event' not in event_handler.__annotations__ or
+        event_handler.__annotations__['event'] is event_type
     ]
