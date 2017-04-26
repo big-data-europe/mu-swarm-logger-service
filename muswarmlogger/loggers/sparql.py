@@ -112,6 +112,7 @@ async def save_container_stats(client, container, since, sparql):
             network_node = Node(':%s' % network_uuid, {
                 'a': SwarmUI.Network,
                 'mu:uuid': network_uuid,
+                'swarmui:interface': if_,
                 'swarmui:rxBytes': network['rx_bytes'],
                 'swarmui:rxPackets': network['rx_packets'],
                 'swarmui:rxErrors': network['rx_errors'],
