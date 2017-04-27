@@ -4,6 +4,8 @@
 @prefix dockevent: <http://ontology.aksw.org/dockevent/> .
 @prefix dockevent_types: <http://ontology.aksw.org/dockevent/types/> .
 @prefix dockevent_actions: <http://ontology.aksw.org/dockevent/actions/> .
+@prefix dockevent_containers: <http://ontology.aksw.org/dockevent/containers/> .
+@prefix dockevent_networks: <http://ontology.aksw.org/dockevent/networks/> .
 
 
 dockevent:Event a owl:Class ;
@@ -130,6 +132,81 @@ dockevent:timeNano a owl:DatatypeProperty ;
         rdfs:range        xsd:int ;
         rdfs:isDefinedBy  dockevent: ;
         rdfs:label        "time nano"@en .
+
+
+dockevent:Container a owl:Class ;
+        rdfs:comment      "Identifies a container inside docker event."@en ;
+        rdfs:isDefinedBy dockevent: ;
+        rdfs:label        "Container"@en .
+
+dockevent:containerId a owl:DatatypeProperty ;
+        rdfs:comment      "An id of a container."@en ;
+        rdfs:domain       dockevent:Container ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "event container id"@en .
+
+dockevent:containerName a owl:DatatypeProperty ;
+        rdfs:comment      "A name of a container."@en ;
+        rdfs:domain       dockevent:Container ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "event container name"@en .
+
+dockevent:containerLabel a owl:DatatypeProperty ;
+        rdfs:comment      "A label of a container."@en ;
+        rdfs:domain       dockevent:Container ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "event container label"@en .
+
+dockevent:containerEnvVar a owl:DatatypeProperty ;
+        rdfs:comment      "An environmental variable of a container."@en ;
+        rdfs:domain       dockevent:Container ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "event container env var"@en .
+
+dockevent:container a owl:ObjectProperty ;
+        rdfs:comment      "Defines container of an event."@en ;
+        rdfs:domain       dockevent:Event ;
+        rdfs:range        dockevent:Container ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "container"@en .
+
+
+dockevent:Network a owl:Class ;
+        rdfs:comment      "Identifies a network for a container."@en ;
+        rdfs:isDefinedBy dockevent: ;
+        rdfs:label        "Network"@en .
+
+dockevent:networkId a owl:DatatypeProperty ;
+        rdfs:comment      "An id for a network."@en ;
+        rdfs:domain       dockevent:Network ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "network id"@en .
+
+dockevent:networkName a owl:DatatypeProperty ;
+        rdfs:comment      "A name for a network."@en ;
+        rdfs:domain       dockevent:Network ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "network name"@en .
+
+dockevent:networkIp a owl:DatatypeProperty ;
+        rdfs:comment      "Ip address for the network."@en ;
+        rdfs:domain       dockevent:Network ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "network IP"@en .
+
+dockevent:network a owl:ObjectProperty ;
+        rdfs:comment      "Defines container network."@en ;
+        rdfs:domain       dockevent:Container ;
+        rdfs:range        dockevent:Network ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "network"@en .
 
 
 dockevent:Actor a owl:Class ;
