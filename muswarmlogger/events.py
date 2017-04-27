@@ -85,7 +85,10 @@ def register_event(subroutine: Callable[[Event, SPARQLClient], None]) -> None:
 
 async def run_on_startup_subroutines(docker: APIClient, sparql: SPARQLClient) -> None:
     for subroutine in on_startup_subroutines:
-        await subroutine(docker, sparql)
+        try:
+            await subroutine(docker, sparql)
+        except Exception:
+            logger.exception("Startup subroutine failed")
 
 
 def list_handlers(event: Event, reload: bool = False) -> None:
