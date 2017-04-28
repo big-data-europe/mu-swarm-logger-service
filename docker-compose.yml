@@ -7,6 +7,9 @@ services:
     environment:
       - DOCKER_HOST=tcp://192.168.122.2:4000
       - MU_APPLICATION_GRAPH=http://example.com/
+    depends_on:
+      database:
+        condition: service_healthy
   database:
     image: tenforce/virtuoso:1.1.0-virtuoso7.2.4
     environment:
@@ -16,3 +19,8 @@ services:
       - "8890:8890"
     volumes:
       - ./data/db:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
