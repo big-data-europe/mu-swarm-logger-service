@@ -99,6 +99,9 @@ class Event2RDF(object):
                 network_node.add(DOCKCONTAINER_NETWORK.name, Literal(name))
                 network_node.add(DOCKCONTAINER_NETWORK.id, Literal(network["NetworkID"]))
                 network_node.add(DOCKCONTAINER_NETWORK.ipAddress, Literal(network["IPAddress"]))
+                if network.get("Links"):
+                    for link in network["Links"]:
+                        network_node.add(DOCKEVENT.link, Literal(link))
                 container_node.add(DOCKCONTAINER.network, network_node)
 
         actor = event.get("Actor", "")

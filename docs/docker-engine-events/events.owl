@@ -201,6 +201,13 @@ dockevent:networkIp a owl:DatatypeProperty ;
         rdfs:isDefinedBy  dockevent: ;
         rdfs:label        "network IP"@en .
 
+dockevent:networkLink a owl:DatatypeProperty ;
+        rdfs:comment      "Network link to other containers"@en ;
+        rdfs:domain       dockevent:Network ;
+        rdfs:range        xsd:string ;
+        rdfs:isDefinedBy  dockevent: ;
+        rdfs:label        "network link"@en .
+
 dockevent:network a owl:ObjectProperty ;
         rdfs:comment      "Defines container network."@en ;
         rdfs:domain       dockevent:Container ;
