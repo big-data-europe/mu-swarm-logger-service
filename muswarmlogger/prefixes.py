@@ -1,4 +1,4 @@
-from aiosparql.syntax import IRI, Namespace, PrefixedName, RDF
+from aiosparql.syntax import IRI, Namespace, PrefixedName, RDF  # noqa: F401
 
 __all__ = """
     rdf swarmui mu ext dct doap w3vocab foaf auth session
@@ -52,3 +52,69 @@ class Session(Namespace):
 
 class W3Vocab(Namespace):
     __iri__ = IRI("https://www.w3.org/1999/xhtml/vocab#")
+
+
+class DockEvent(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockevent/")
+
+    action = PrefixedName
+    actionExtra = PrefixedName
+    actor = PrefixedName
+    actorId = PrefixedName
+    container = PrefixedName
+    dateTime = PrefixedName
+    eventId = PrefixedName
+    image = PrefixedName
+    link = PrefixedName
+    name = PrefixedName
+    nodeId = PrefixedName
+    nodeIp = PrefixedName
+    nodeIpPort = PrefixedName
+    nodeName = PrefixedName
+    source = PrefixedName
+    time = PrefixedName
+    timeNano = PrefixedName
+    type = PrefixedName
+
+
+class DockEventTypes(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockevent/types/")
+
+    container = PrefixedName
+    event = PrefixedName
+    network = PrefixedName
+    plugin = PrefixedName
+    volume = PrefixedName
+
+
+class DockEventActions(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockevent/actions/")
+
+    attach = PrefixedName
+    connect = PrefixedName
+    create = PrefixedName
+    destroy = PrefixedName
+    die = PrefixedName
+    exec_create = PrefixedName
+    exec_start = PrefixedName
+    health_status = PrefixedName
+    resize = PrefixedName
+    start = PrefixedName
+
+
+class DockContainer(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockcontainer/")
+
+    env = PrefixedName
+    id = PrefixedName
+    label = PrefixedName
+    name = PrefixedName
+    network = PrefixedName
+
+
+class DockContainerNetwork(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockcontainer/network/")
+
+    name = PrefixedName
+    id = PrefixedName
+    ipAddress = PrefixedName

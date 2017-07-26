@@ -245,16 +245,15 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
     container = (await event.container) if event.status == "start" else None
     e2rdf = Event2RDF()
     e2rdf.add_event_to_graph(event.data, container=container)
-    ntriples = e2rdf.serialize().decode("utf-8")
-    await sparql.update("""
-        WITH <%(graph)s>
+    triples = e2rdf.serialize()
+    await sparql.update(
+        """
         INSERT DATA {
-            %(ntriples)s
+            GRAPH {{graph}} {
+                {{}}
+            }
         }
-        """ % {
-            "graph": graph,
-            "ntriples": ntriples,
-        })
+        """, triples)
 
 
 @register_event
