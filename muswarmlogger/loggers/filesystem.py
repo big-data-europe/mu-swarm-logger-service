@@ -12,9 +12,9 @@ output_dir = ENV["LOG_DIR"]
 
 
 async def save_container_logs(client, container, since):
-    logs = await client.logs(container, stream=True, timestamps=True, since=since)
     with open(path.join(output_dir, container), "a") as fh:
-        async for line in logs:
+        async for line in client.logs(container, stream=True, timestamps=True,
+                                      since=since):
             timestamp, log = line.decode().split(" ", 1)
             print(timestamp, "|", log.rstrip(), file=fh)
         logger.info("Finished logging (container %s is stopped)", container[:12])

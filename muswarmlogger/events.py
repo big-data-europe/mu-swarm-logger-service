@@ -1,8 +1,9 @@
-from aiodockerpy import APIClient
-from aiosparql.client import SPARQLClient
+import asyncio
 import importlib
 import logging
 import os, sys
+from aiodockerpy import APIClient
+from aiosparql.client import SPARQLClient
 from typing import Any, Callable, Dict, List
 
 
@@ -48,7 +49,7 @@ class ContainerEvent(Event):
     @property
     def container(self):
         if self._container_task is None:
-            self._container_task = self.client.loop.create_task(
+            self._container_task = asyncio.ensure_future(
                 self.client.inspect_container(self.id))
         return self._container_task
 

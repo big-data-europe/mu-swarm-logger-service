@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 async def save_container_logs(client, container, since):
-    logs = await client.logs(container, stream=True, timestamps=True, since=since)
-    async for line in logs:
+    async for line in client.logs(container, stream=True, timestamps=True,
+                                  since=since):
         timestamp, log = line.split(b" ", 1)
         print(container[:12], "--", timestamp.decode(), "--", repr(log))
     logger.info("Finished logging (container %s is stopped)", container[:12])

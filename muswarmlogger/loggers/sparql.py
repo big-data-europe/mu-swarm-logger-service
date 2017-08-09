@@ -46,8 +46,8 @@ async def create_container_log_concept(sparql, container):
 
 
 async def save_container_logs(client, container, since, sparql, base_concept):
-    logs = await client.logs(container, stream=True, timestamps=True, since=since)
-    async for line in logs:
+    async for line in client.logs(container, stream=True, timestamps=True,
+                                  since=since):
         timestamp, log = line.decode().split(" ", 1)
         uuid = uuid1(0)
         concept = "%s/log/%s" % (base_concept, uuid)
