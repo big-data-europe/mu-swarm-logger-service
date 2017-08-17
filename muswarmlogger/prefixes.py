@@ -1,7 +1,7 @@
 from aiosparql.syntax import IRI, Namespace, PrefixedName, RDF  # noqa: F401
 
 __all__ = """
-    rdf swarmui mu ext dct doap w3vocab foaf auth session
+    RDF SwarmUI Mu Ext Dct Doap W3Vocab Foaf Auth Session
     """.split()
 
 

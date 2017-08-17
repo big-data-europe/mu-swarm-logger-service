@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import logging
 from aiodockerpy import APIClient
 from aiosparql.client import SPARQLClient
@@ -13,10 +14,20 @@ from muswarmlogger.events import (
 logger = logging.getLogger(__name__)
 
 
-async def run_loop(sparql_endpoint=None, debug=False):
+if ENV.get("ENV", "prod").startswith("dev"):
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+
+
+for name in ENV.get('LOGGERS', "sparql").split():
+    importlib.import_module("muswarmlogger.loggers.%s" % name)
+
+
+async def run():
     docker_args = kwargs_from_env()
     docker = APIClient(timeout=5, **docker_args)
-    sparql = SPARQLClient(sparql_endpoint,
+    sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
                           graph=IRI(ENV['MU_APPLICATION_GRAPH']))
     try:
         await run_on_startup_subroutines(docker, sparql)
@@ -25,7 +36,9 @@ async def run_loop(sparql_endpoint=None, debug=False):
                 event = new_event(docker, x)
                 await asyncio.gather(
                     *(handler(event, sparql)
-                    for handler in list_handlers(event, reload=debug)))
+                    for handler in list_handlers(
+                        event,
+                        reload=ENV.get("ENV", "prod").startswith("dev"))))
             except Exception:
                 logger.exception(
                     "An error occurred during a coroutine execution. "
