@@ -20,11 +20,17 @@ else:
     logging.basicConfig(level=logging.INFO)
 
 
+# NOTE: find all the "loggers" modules and load them, this will trigger the
+#       event registrations and on_startup coroutines registration
 for name in ENV.get('LOGGERS', "sparql").split():
     importlib.import_module("muswarmlogger.loggers.%s" % name)
 
 
 async def run():
+    """
+    Start the main loop of the application: loop on the Docker events until
+    there is no more events (the daemon is dead)
+    """
     docker_args = kwargs_from_env()
     docker = APIClient(timeout=5, **docker_args)
     sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],

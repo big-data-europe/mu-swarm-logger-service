@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 async def save_container_logs(client, container, since):
+    """
+    Print container logs to STDOUT
+    """
     async for line in client.logs(container, stream=True, timestamps=True,
                                   since=since):
         timestamp, log = line.split(b" ", 1)
@@ -19,6 +22,10 @@ async def save_container_logs(client, container, since):
 
 @register_event
 async def start_logging_container(event: ContainerEvent, _):
+    """
+    Docker Container hook, if there is a LOG label, it will start saving the
+    log lines to STDOUT
+    """
     if not event.status == "start":
         return
     if not event.attributes.get('LOG'):
@@ -32,6 +39,10 @@ async def start_logging_container(event: ContainerEvent, _):
 
 @on_startup
 async def start_logging_existing_containers(docker: APIClient, _):
+    """
+    On startup of the application, this function will start logging to STDOUT
+    all containers that have a LOG label
+    """
     now = datetime.utcnow()
     containers = await docker.containers()
     for container in containers:

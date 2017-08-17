@@ -14,6 +14,9 @@ module_mtimes = {}
 
 
 class Event:
+    """
+    A Docker Event
+    """
     def __init__(self, client: APIClient, data: dict):
         self.client = client
         self.data = data
@@ -44,6 +47,10 @@ class Event:
 
 
 class ContainerEvent(Event):
+    """
+    A Docker container event
+    """
+
     _container_task = None
 
     @property
@@ -63,6 +70,9 @@ class ContainerEvent(Event):
 
 
 def new_event(client: APIClient, data: Dict[str, Any]) -> None:
+    """
+    New Docker events are transformed here to the class Event
+    """
     event_type = data['Type']
     if event_type == "container":
         return ContainerEvent(client, data)
@@ -72,10 +82,18 @@ def new_event(client: APIClient, data: Dict[str, Any]) -> None:
 
 
 def on_startup(subroutine: Callable[[APIClient, SPARQLClient], None]) -> None:
+    """
+    A decorator that can be used to register a coroutine that is called when
+    the application starts up
+    """
     on_startup_subroutines.append(subroutine)
 
 
 def register_event(subroutine: Callable[[Event, SPARQLClient], None]) -> None:
+    """
+    A decorator that can be used to register a coroutine as a receiver of
+    Docker events
+    """
     module_name = subroutine.__module__
     module = sys.modules[module_name]
     stat_info = os.stat(module.__file__)
@@ -85,6 +103,9 @@ def register_event(subroutine: Callable[[Event, SPARQLClient], None]) -> None:
 
 
 async def run_on_startup_subroutines(docker: APIClient, sparql: SPARQLClient) -> None:
+    """
+    This function starts all the coroutines
+    """
     for subroutine in on_startup_subroutines:
         try:
             await subroutine(docker, sparql)
@@ -93,6 +114,9 @@ async def run_on_startup_subroutines(docker: APIClient, sparql: SPARQLClient) ->
 
 
 def list_handlers(event: Event, reload: bool = False) -> None:
+    """
+    List all the handlers for a specific type of event
+    """
     handlers = _filter_handlers(event)
     if reload:
         changes = _detect_changes(handlers)
@@ -104,6 +128,9 @@ def list_handlers(event: Event, reload: bool = False) -> None:
 
 
 def _detect_changes(handlers: List[Callable]) -> Dict[str, float]:
+    """
+    Detect changes in the code source
+    """
     changes = {}
     for subroutine in handlers:
         module_name = subroutine.__module__
@@ -115,6 +142,9 @@ def _detect_changes(handlers: List[Callable]) -> Dict[str, float]:
 
 
 def _reload_modules(changes: Dict[str, float]) -> None:
+    """
+    Reload the modules that have changes
+    """
     for module_name, st_mtime in changes.items():
         event_handlers[:] = [
             x
@@ -126,6 +156,9 @@ def _reload_modules(changes: Dict[str, float]) -> None:
 
 
 def _filter_handlers(event: Event):
+    """
+    Filter the handlers for a specific type of event
+    """
     event_type = type(event)
     return [
         event_handler

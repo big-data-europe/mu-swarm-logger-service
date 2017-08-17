@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 async def create_container_log_concept(sparql, container):
+    """
+    Create a container log concept, this is the node that will group all the
+    log lines together
+    """
     concept = IRI("docklogs:%s" % container['Id'])
     resp = await sparql.query("ASK FROM {{graph}} WHERE { {{}} ?p ?o }",
                               concept)
@@ -29,6 +33,10 @@ async def create_container_log_concept(sparql, container):
 
 
 async def save_container_logs(client, container, since, sparql, base_concept):
+    """
+    Iterates over the container's log lines and insert triples to the database
+    until there is no more lines
+    """
     async for line in client.logs(container, stream=True, timestamps=True,
                                   since=since):
         timestamp, log = line.decode().split(" ", 1)
@@ -223,6 +231,9 @@ async def save_container_stats(client, container, since, sparql):
 
 @register_event
 async def store_events(event: ContainerEvent, sparql: SPARQLClient):
+    """
+    Convert a Docker container event to triples and insert them to the database
+    """
     container = (await event.container) if event.status == "start" else None
     e2rdf = Event2RDF()
     e2rdf.add_event_to_graph(event.data, container=container)
@@ -239,6 +250,9 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
 
 @register_event
 async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
+    """
+    Start logging the container's logs to the database
+    """
     if not event.status == "start":
         return
     if not event.attributes.get('LOG'):
@@ -253,6 +267,9 @@ async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
 
 @register_event
 async def start_logging_container_stats(event: ContainerEvent, sparql: SPARQLClient):
+    """
+    Start logging the container stats to the database
+    """
     if not event.status == "start":
         return
     if not event.attributes.get('STATS'):
@@ -264,6 +281,9 @@ async def start_logging_container_stats(event: ContainerEvent, sparql: SPARQLCli
 
 @on_startup
 async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLClient):
+    """
+    Start logging the existing container's logs to the database on startup
+    """
     now = datetime.utcnow()
     containers = await docker.containers()
     for container in containers:
@@ -279,6 +299,9 @@ async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLCli
 
 @on_startup
 async def start_logging_existing_containers_stats(docker: APIClient, sparql: SPARQLClient):
+    """
+    Start logging the existing container's stats to the database on startup
+    """
     now = datetime.utcnow()
     containers = await docker.containers()
     for container in containers:
