@@ -20,10 +20,13 @@ class SwarmUI(Namespace):
     MemoryStats = PrefixedName
     Network = PrefixedName
     Stats = PrefixedName
+    logLine = PrefixedName
 
 
 class Mu(Namespace):
     __iri__ = IRI("http://mu.semte.ch/vocabularies/core/")
+
+    uuid = PrefixedName
 
 
 class Ext(Namespace):
@@ -32,6 +35,9 @@ class Ext(Namespace):
 
 class Dct(Namespace):
     __iri__ = IRI("http://purl.org/dc/terms/")
+
+    issued = PrefixedName
+    title = PrefixedName
 
 
 class Doap(Namespace):

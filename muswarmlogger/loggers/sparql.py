@@ -1,46 +1,29 @@
+import asyncio
+import logging
 from aiodockerpy import APIClient
 from aiosparql.client import SPARQLClient
 from aiosparql.escape import escape_string
-from aiosparql.syntax import Node, RDFTerm, Triples
-import asyncio
+from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
 from datetime import datetime
 from dateutil import parser as datetime_parser
-import logging
-from os import environ as ENV
 from uuid import uuid1
 
 from muswarmlogger.event2rdf import Event2RDF
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
-from muswarmlogger.prefixes import SwarmUI
+from muswarmlogger.prefixes import Dct, Mu, SwarmUI
 
 
 logger = logging.getLogger(__name__)
-graph = ENV['MU_APPLICATION_GRAPH']
 
 
 async def create_container_log_concept(sparql, container):
-    concept = "docklogs:%s" % container['Id']
-    resp = await sparql.query("""
-        ASK
-        FROM <%(graph)s>
-        WHERE {
-            <%(concept)s> ?p ?o .
-        }
-        """ % {
-            "graph": graph,
-            "concept": concept,
-        })
+    concept = IRI("docklogs:%s" % container['Id'])
+    resp = await sparql.query("ASK FROM {{graph}} WHERE { {{}} ?p ?o }",
+                              concept)
     if not resp['boolean']:
-        resp = await sparql.update("""
-            WITH <%(graph)s>
-            INSERT DATA {
-                <%(concept)s> dct:title %(name)s .
-            }
-            """ % {
-                "graph": graph,
-                "concept": concept,
-                "name": escape_string(container['Name'][1:]),
-            })
+        resp = await sparql.update(
+            "WITH {{graph}} INSERT DATA { {{}} dct:title {{}} }",
+            concept, escape_string(container['Name'][1:]))
         logger.info("Created logging concept: %s", concept)
     return concept
 
@@ -49,26 +32,25 @@ async def save_container_logs(client, container, since, sparql, base_concept):
     async for line in client.logs(container, stream=True, timestamps=True,
                                   since=since):
         timestamp, log = line.decode().split(" ", 1)
+        timestamp = datetime_parser.parse(timestamp)
         uuid = uuid1(0)
-        concept = "%s/log/%s" % (base_concept, uuid)
+        concept = base_concept + ("/log/%s" % uuid)
         logger.debug("Log into %s: %s", concept, log.strip())
-        resp = await sparql.update("""
-            WITH <%(graph)s>
+        triples = Triples([
+            (base_concept, SwarmUI.logLine, concept),
+            Node(concept, {
+                Mu.uuid: uuid,
+                Dct.issued: timestamp,
+                Dct.title: log,
+            }),
+        ])
+        resp = await sparql.update(
+            """
+            WITH {{graph}}
             INSERT DATA {
-                <%(base_concept)s> swarmui:logLine <%(concept)s> .
-
-                <%(concept)s> mu:uuid %(uuid)s ;
-                dct:issued %(timestamp)s^^xsd:dateTime ;
-                dct:title %(log)s .
+                {{}}
             }
-            """ % {
-                "graph": graph,
-                "base_concept": base_concept,
-                "concept": concept,
-                "uuid": escape_string(str(uuid)),
-                "timestamp": escape_string(timestamp),
-                "log": escape_string(log),
-            })
+            """, triples)
     logger.info("Finished logging into %s (container %s is stopped)",
                 base_concept, container[:12])
 
@@ -78,8 +60,7 @@ async def save_container_stats(client, container, since, sparql):
     Docker stats API doc:
     https://docs.docker.com/engine/api/v1.26/#operation/ContainerStats
     """
-    stats = client.stats(container, decode=True)
-    async for data in stats:
+    async for data in client.stats(container, decode=True):
         uuid_pids_stats = uuid1(0)
         uuid_cpu_stats_cpu_usage = uuid1(0)
         uuid_cpu_stats_throttling_data = uuid1(0)
@@ -92,8 +73,8 @@ async def save_container_stats(client, container, since, sparql):
         uuid = uuid1(0)
 
         stats_node = Node(':%s' % uuid, {
-            'a': SwarmUI.Stats,
-            'mu:uuid': uuid,
+            RDF.type: SwarmUI.Stats,
+            Mu.uuid: uuid,
             'swarmui:read': datetime_parser.parse(data['read']),
             'swarmui:preread': datetime_parser.parse(data['preread']),
             'swarmui:pidsStats': RDFTerm(':%s' % uuid_pids_stats),
@@ -110,8 +91,8 @@ async def save_container_stats(client, container, since, sparql):
         for if_, network in data.get('networks', {}).items():
             network_uuid = uuid1(0)
             network_node = Node(':%s' % network_uuid, {
-                'a': SwarmUI.Network,
-                'mu:uuid': network_uuid,
+                RDF.type: SwarmUI.Network,
+                Mu.uuid: network_uuid,
                 'swarmui:interface': if_,
                 'swarmui:rxBytes': network['rx_bytes'],
                 'swarmui:rxPackets': network['rx_packets'],
@@ -127,13 +108,13 @@ async def save_container_stats(client, container, since, sparql):
 
         triples.extend([
             Node(':%s' % uuid_pids_stats, {
-                'a': SwarmUI.PidsStats,
-                'mu:uuid': uuid_pids_stats,
+                RDF.type: SwarmUI.PidsStats,
+                Mu.uuid: uuid_pids_stats,
                 'swarmui:current': data['pids_stats']['current'],
             }),
             Node(':%s' % uuid_cpu_stats_cpu_usage, [
-                ('a', SwarmUI.CpuUsage),
-                ('mu:uuid', uuid_cpu_stats_cpu_usage),
+                (RDF.type, SwarmUI.CpuUsage),
+                (Mu.uuid, uuid_cpu_stats_cpu_usage),
                 ('swarmui:totalUsage', data['cpu_stats']['cpu_usage']['total_usage']),
             ] + [
                 ('swarmui:percpuUsage', x)
@@ -143,22 +124,22 @@ async def save_container_stats(client, container, since, sparql):
                 ('swarmui:usageInUsermode', data['cpu_stats']['cpu_usage']['usage_in_usermode']),
             ]),
             Node(':%s' % uuid_cpu_stats_throttling_data, {
-                'a': SwarmUI.ThrottlingData,
-                'mu:uuid': uuid_cpu_stats_throttling_data,
+                RDF.type: SwarmUI.ThrottlingData,
+                Mu.uuid: uuid_cpu_stats_throttling_data,
                 'swarmui:periods': data['cpu_stats']['throttling_data']['periods'],
                 'swarmui:throttledPeriods': data['cpu_stats']['throttling_data']['throttled_periods'],
                 'swarmui:throttledTime': data['cpu_stats']['throttling_data']['throttled_time'],
             }),
             Node(':%s' % uuid_cpu_stats, {
-                'a': SwarmUI.CpuStats,
-                'mu:uuid': uuid_cpu_stats,
+                RDF.type: SwarmUI.CpuStats,
+                Mu.uuid: uuid_cpu_stats,
                 'swarmui:cpuUsage': RDFTerm(':%s' % uuid_cpu_stats_cpu_usage),
                 'swarmui:systemCpuUsage': data['cpu_stats']['system_cpu_usage'],
                 'swarmui:throttlingData': RDFTerm(':%s' % uuid_cpu_stats_throttling_data),
             }),
             Node(':%s' % uuid_precpu_stats_cpu_usage, [
-                ('a', SwarmUI.CpuUsage),
-                ('mu:uuid', uuid_precpu_stats_cpu_usage),
+                (RDF.type, SwarmUI.CpuUsage),
+                (Mu.uuid, uuid_precpu_stats_cpu_usage),
                 ('swarmui:totalUsage', data['precpu_stats']['cpu_usage']['total_usage']),
             ] + [
                 ('swarmui:percpuUsage', x)
@@ -168,22 +149,22 @@ async def save_container_stats(client, container, since, sparql):
                 ('swarmui:usageInUsermode', data['precpu_stats']['cpu_usage']['usage_in_usermode']),
             ]),
             Node(':%s' % uuid_precpu_stats_throttling_data, {
-                'a': SwarmUI.ThrottlingData,
-                'mu:uuid': uuid_precpu_stats_throttling_data,
+                RDF.type: SwarmUI.ThrottlingData,
+                Mu.uuid: uuid_precpu_stats_throttling_data,
                 'swarmui:periods': data['precpu_stats']['throttling_data']['periods'],
                 'swarmui:throttledPeriods': data['precpu_stats']['throttling_data']['throttled_periods'],
                 'swarmui:throttledTime': data['precpu_stats']['throttling_data']['throttled_time'],
             }),
             Node(':%s' % uuid_precpu_stats, {
-                'a': SwarmUI.PrecpuStats,
-                'mu:uuid': uuid_precpu_stats,
+                RDF.type: SwarmUI.PrecpuStats,
+                Mu.uuid: uuid_precpu_stats,
                 'swarmui:cpuUsage': RDFTerm(':%s' % uuid_precpu_stats_cpu_usage),
                 'swarmui:systemCpuUsage': data['precpu_stats'].get('system_cpu_usage'),
                 'swarmui:throttlingData': RDFTerm(':%s' % uuid_precpu_stats_throttling_data),
             }),
             Node(':%s' % uuid_memory_stats_stats, {
-                'a': SwarmUI.Stats,
-                'mu:uuid': uuid_memory_stats_stats,
+                RDF.type: SwarmUI.Stats,
+                Mu.uuid: uuid_memory_stats_stats,
                 'swarmui:activeAnon': data['memory_stats']['stats']['active_anon'],
                 'swarmui:activeFile': data['memory_stats']['stats']['active_file'],
                 'swarmui:cache': data['memory_stats']['stats']['cache'],
@@ -220,8 +201,8 @@ async def save_container_stats(client, container, since, sparql):
                 'swarmui:writeback': data['memory_stats']['stats']['writeback'],
             }),
             Node(':%s' % uuid_memory_stats, {
-                'a': SwarmUI.MemoryStats,
-                'mu:uuid': uuid_memory_stats,
+                RDF.type: SwarmUI.MemoryStats,
+                Mu.uuid: uuid_memory_stats,
                 'swarmui:usage': data['memory_stats']['usage'],
                 'swarmui:maxUsage': data['memory_stats']['max_usage'],
                 'swarmui:stats': RDFTerm(':%s' % uuid_memory_stats_stats),
