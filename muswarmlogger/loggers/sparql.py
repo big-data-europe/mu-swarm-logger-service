@@ -107,7 +107,7 @@ async def save_container_stats(client, container, since, sparql):
 
         triples = Triples([stats_node])
 
-        for if_, network in data['networks'].items():
+        for if_, network in data.get('networks', {}).items():
             network_uuid = uuid1(0)
             network_node = Node(':%s' % network_uuid, {
                 'a': SwarmUI.Network,
