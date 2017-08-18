@@ -39,13 +39,8 @@ async def run():
         parameters = [sparql, docker]
         await run_on_startup_coroutines(parameters)
         async for x in docker.events(decode=True):
-            try:
-                event = Event.new(docker, x)
-                send_event(event, parameters)
-            except Exception:
-                logger.exception(
-                    "An error occurred during a coroutine execution. "
-                    "The loop will not be interrupted.")
+            event = Event.new(docker, x)
+            asyncio.ensure_future(send_event(event, parameters))
     finally:
         await docker.close()
         await sparql.close()

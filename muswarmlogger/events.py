@@ -87,7 +87,7 @@ class ContainerEvent(Event):
         return self.data['status']
 
 
-def send_event(event, parameters):
+async def send_event(event, parameters):
     """
     Send the Docker event to all the registered hooks
     """
@@ -95,7 +95,13 @@ def send_event(event, parameters):
     for handler in list_handlers(event):
         kwargs = get_kwargs_for_parameters(handler, [event] + parameters)
         coros_or_futures.append(handler(**kwargs))
-    return asyncio.gather(*coros_or_futures)
+    results = await asyncio.gather(*coros_or_futures, return_exceptions=True)
+    exceptions = filter(lambda x: isinstance(x, BaseException), results)
+    for exc in exceptions:
+        try:
+            raise exc
+        except:
+            logger.exception("An error occurred")
 
 
 async def run_on_startup_coroutines(parameters):
