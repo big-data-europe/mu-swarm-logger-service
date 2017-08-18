@@ -21,7 +21,7 @@ async def save_container_logs(client, container, since):
 
 
 @register_event
-async def start_logging_container(event: ContainerEvent, _):
+async def start_logging_container(event: ContainerEvent):
     """
     Docker Container hook, if there is a LOG label, it will start saving the
     log lines to STDOUT
@@ -38,7 +38,7 @@ async def start_logging_container(event: ContainerEvent, _):
 
 
 @on_startup
-async def start_logging_existing_containers(docker: APIClient, _):
+async def start_logging_existing_containers(docker: APIClient):
     """
     On startup of the application, this function will start logging to STDOUT
     all containers that have a LOG label

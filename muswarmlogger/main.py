@@ -8,7 +8,7 @@ from docker.utils.utils import kwargs_from_env
 from os import environ as ENV
 
 from muswarmlogger.events import (
-    list_handlers, new_event, run_on_startup_subroutines)
+    Event, run_on_startup_coroutines, send_event)
 
 
 logger = logging.getLogger(__name__)
@@ -36,15 +36,12 @@ async def run():
     sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
                           graph=IRI(ENV['MU_APPLICATION_GRAPH']))
     try:
-        await run_on_startup_subroutines(docker, sparql)
+        parameters = [sparql, docker]
+        await run_on_startup_coroutines(parameters)
         async for x in docker.events(decode=True):
             try:
-                event = new_event(docker, x)
-                await asyncio.gather(
-                    *(handler(event, sparql)
-                    for handler in list_handlers(
-                        event,
-                        reload=ENV.get("ENV", "prod").startswith("dev"))))
+                event = Event.new(docker, x)
+                send_event(event, parameters)
             except Exception:
                 logger.exception(
                     "An error occurred during a coroutine execution. "
