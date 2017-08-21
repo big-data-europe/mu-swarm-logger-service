@@ -38,30 +38,32 @@ async def save_container_logs(client, container, since, sparql, base_concept):
     Iterates over the container's log lines and insert triples to the database
     until there is no more lines
     """
-    async for line in client.logs(container, stream=True, timestamps=True,
-                                  since=since):
-        timestamp, log = line.decode().split(" ", 1)
-        timestamp = datetime_parser.parse(timestamp)
-        uuid = uuid1(0)
-        concept = base_concept + ("/log/%s" % uuid)
-        logger.debug("Log into %s: %s", concept, log.strip())
-        triples = Triples([
-            (base_concept, SwarmUI.logLine, concept),
-            Node(concept, {
-                Mu.uuid: uuid,
-                Dct.issued: timestamp,
-                Dct.title: log,
-            }),
-        ])
-        resp = await sparql.update(
-            """
-            WITH {{graph}}
-            INSERT DATA {
-                {{}}
-            }
-            """, triples)
-    logger.info("Finished logging into %s (container %s is stopped)",
-                base_concept, container[:12])
+    try:
+        async for line in client.logs(container, stream=True, timestamps=True,
+                                      since=since):
+            timestamp, log = line.decode().split(" ", 1)
+            timestamp = datetime_parser.parse(timestamp)
+            uuid = uuid1(0)
+            concept = base_concept + ("/log/%s" % uuid)
+            logger.debug("Log into %s: %s", concept, log.strip())
+            triples = Triples([
+                (base_concept, SwarmUI.logLine, concept),
+                Node(concept, {
+                    Mu.uuid: uuid,
+                    Dct.issued: timestamp,
+                    Dct.title: log,
+                }),
+            ])
+            resp = await sparql.update(
+                """
+                WITH {{graph}}
+                INSERT DATA {
+                    {{}}
+                }
+                """, triples)
+    finally:
+        logger.info("Finished logging into %s (container %s is stopped)",
+                    base_concept, container[:12])
 
 
 async def save_container_stats(client, container, since, sparql):

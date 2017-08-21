@@ -41,6 +41,16 @@ async def run():
         async for x in docker.events(decode=True):
             event = Event.new(docker, x)
             asyncio.ensure_future(send_event(event, parameters))
+    except asyncio.CancelledError:
+        for task in asyncio.Task.all_tasks():
+            if task is not asyncio.Task.current_task() and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except Exception:
+                    if not task.cancelled():
+                        logger.exception("An error occurred")
+        raise
     finally:
         await docker.close()
         await sparql.close()

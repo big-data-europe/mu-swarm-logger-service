@@ -15,11 +15,13 @@ async def save_container_logs(client, container, since):
     """
     Save container's log lines to a file
     """
-    with open(path.join(output_dir, container), "a") as fh:
-        async for line in client.logs(container, stream=True, timestamps=True,
-                                      since=since):
-            timestamp, log = line.decode().split(" ", 1)
-            print(timestamp, "|", log.rstrip(), file=fh)
+    try:
+        with open(path.join(output_dir, container), "a") as fh:
+            async for line in client.logs(container, stream=True,
+                                          timestamps=True, since=since):
+                timestamp, log = line.decode().split(" ", 1)
+                print(timestamp, "|", log.rstrip(), file=fh)
+    finally:
         logger.info("Finished logging (container %s is stopped)", container[:12])
 
 

@@ -13,11 +13,14 @@ async def save_container_logs(client, container, since):
     """
     Print container logs to STDOUT
     """
-    async for line in client.logs(container, stream=True, timestamps=True,
-                                  since=since):
-        timestamp, log = line.split(b" ", 1)
-        print(container[:12], "--", timestamp.decode(), "--", repr(log))
-    logger.info("Finished logging (container %s is stopped)", container[:12])
+    try:
+        async for line in client.logs(container, stream=True, timestamps=True,
+                                      since=since):
+            timestamp, log = line.split(b" ", 1)
+            print(container[:12], "--", timestamp.decode(), "--", repr(log))
+    finally:
+        logger.info("Finished logging (container %s is stopped)",
+                    container[:12])
 
 
 @register_event
