@@ -32,7 +32,7 @@ async def run():
     there is no more events (the daemon is dead)
     """
     docker_args = kwargs_from_env()
-    docker = APIClient(timeout=5, **docker_args)
+    docker = APIClient(**docker_args)
     sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
                           graph=IRI(ENV['MU_APPLICATION_GRAPH']))
     try:
