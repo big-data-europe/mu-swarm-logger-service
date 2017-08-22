@@ -2,70 +2,46 @@ import asyncio
 import logging
 from aiodockerpy import APIClient
 from aiosparql.client import SPARQLClient
-from aiosparql.escape import escape_string
-from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
+from aiosparql.syntax import Node, RDF, RDFTerm, Triples
 from datetime import datetime
 from dateutil import parser as datetime_parser
-from os import environ as ENV
 from uuid import uuid1
 
-from muswarmlogger.events import (
-    ContainerEvent, fixture, register_event, on_startup)
-from muswarmlogger.prefixes import (
-    Dct, DockContainer, DockContainerNetwork, DockEvent, DockEventActions,
-    DockEventTypes, Mu, SwarmUI)
+from muswarmlogger.events import ContainerEvent, register_event, on_startup
+
+from .prefixes import Mu, SwarmUI
 
 
 logger = logging.getLogger(__name__)
 
 
-async def create_container_log_concept(sparql, container):
+@on_startup
+async def start_logging_existing_containers_stats(docker: APIClient, sparql: SPARQLClient):
     """
-    Create a container log concept, this is the node that will group all the
-    log lines together
+    Start logging the existing container's stats to the database on startup
     """
-    concept = IRI("docklogs:%s" % container['Id'])
-    resp = await sparql.query("ASK FROM {{graph}} WHERE { {{}} ?p ?o }",
-                              concept)
-    if not resp['boolean']:
-        resp = await sparql.update(
-            "WITH {{graph}} INSERT DATA { {{}} dct:title {{}} }",
-            concept, escape_string(container['Name'][1:]))
-        logger.info("Created logging concept: %s", concept)
-    return concept
+    now = datetime.utcnow()
+    containers = await docker.containers()
+    for container in containers:
+        container = await docker.inspect_container(container['Id'])
+        if not container['Config']['Labels'].get('STATS'):
+            continue
+        asyncio.ensure_future(save_container_stats(docker, container['Id'], now, sparql))
+        logger.info("Logging container %s", container['Id'][:12])
 
 
-async def save_container_logs(client, container, since, sparql, base_concept):
+@register_event
+async def start_logging_container_stats(event: ContainerEvent, sparql: SPARQLClient):
     """
-    Iterates over the container's log lines and insert triples to the database
-    until there is no more lines
+    Start logging the container stats to the database
     """
-    try:
-        async for line in client.logs(container, stream=True, timestamps=True,
-                                      since=since):
-            timestamp, log = line.decode().split(" ", 1)
-            timestamp = datetime_parser.parse(timestamp)
-            uuid = uuid1(0)
-            concept = base_concept + ("/log/%s" % uuid)
-            logger.debug("Log into %s: %s", concept, log.strip())
-            triples = Triples([
-                (base_concept, SwarmUI.logLine, concept),
-                Node(concept, {
-                    Mu.uuid: uuid,
-                    Dct.issued: timestamp,
-                    Dct.title: log,
-                }),
-            ])
-            resp = await sparql.update(
-                """
-                WITH {{graph}}
-                INSERT DATA {
-                    {{}}
-                }
-                """, triples)
-    finally:
-        logger.info("Finished logging into %s (container %s is stopped)",
-                    base_concept, container[:12])
+    if not event.status == "start":
+        return
+    if not event.attributes.get('STATS'):
+        return
+    container = await event.container
+    asyncio.ensure_future(save_container_stats(event.client, event.id, event.time, sparql))
+    logger.info("Logging container %s", container['Id'][:12])
 
 
 async def save_container_stats(client, container, since, sparql):
@@ -232,173 +208,3 @@ async def save_container_stats(client, container, since, sparql):
             """, triples)
 
     logger.info("Finished logging stats (container %s is stopped)", container[:12])
-
-
-@register_event
-async def store_events(event: ContainerEvent, sparql: SPARQLClient):
-    """
-    Convert a Docker container event to triples and insert them to the database
-    """
-    container = (await event.container) if event.status == "start" else None
-
-    event_id = event.data.get("id", "")
-    if event_id == "":
-        return None
-
-    _time = event.data.get("time", "")
-    _timeNano = event.data.get("timeNano", "")
-    _datetime = datetime.fromtimestamp(int(_time))
-
-    event_id = "%s_%s" % (event_id, _timeNano)
-    event_node = Node("<dockevent:%s>" % event_id, {
-        "a": DockEventTypes.event,
-        DockEvent.eventId: event_id,
-        DockEvent.time: _time,
-        DockEvent.timeNano: _timeNano,
-        DockEvent.dateTime: _datetime,
-    })
-
-    event_type = event.data.get("Type", "")
-    event_node.append(
-        (DockEvent.type, getattr(DockEventTypes, event_type)))
-
-    event_action = event.data.get("Action", "")
-    if ":" in event_action:
-        event_action_type = event_action.split(":")[0]
-        event_action_extra = event_action.split(":")[-1].strip()
-        event_node.append((DockEvent.actionExtra, event_action_extra))
-    else:
-        event_action_type = event_action
-
-    event_node.append(
-        (DockEvent.action, getattr(DockEventActions, event_action_type)))
-
-    if container is not None:
-        container_id = "%s_%s" % (container["Id"], _timeNano)
-        container_node = Node("<dockcontainer:%s>" % container_id, {
-            DockContainer.id: container["Id"],
-            DockContainer.name: container["Name"],
-        })
-        for label, value in container["Config"]["Labels"].items():
-            container_node.append(
-                (DockContainer.label, "%s=%s" % (label, value)))
-        for env_with_value in container["Config"]["Env"]:
-            container_node.append((DockContainer.env, env_with_value))
-        event_node.append((DockEvent.container, container_node))
-        for name, network in \
-                container["NetworkSettings"]["Networks"].items():
-            network_id = "%s_%s" % (network["NetworkID"], _timeNano)
-            network_node = Node(
-                "<dockcontainer_network:%s>" % network_id,
-                {
-                    DockContainerNetwork.name: name,
-                    DockContainerNetwork.id: network["NetworkID"],
-                    DockContainerNetwork.ipAddress: network["IPAddress"],
-                })
-            if network.get("Links"):
-                for link in network["Links"]:
-                    network_node.append((DockEvent.link, link))
-            container_node.append((DockContainer.network, network_node))
-
-    actor = event.data.get("Actor", "")
-    if actor != "":
-        actor_id = actor.get("ID", "")
-        actor_id = "%s_%s" % (actor_id, _timeNano)
-        actor_node = Node("<dockevent_actors:%s>" % actor_id, {
-            DockEvent.actorId: actor_id,
-        })
-        actor_attributes = actor.get("Attributes", {})
-        actor_node.extend([
-            (DockEvent.image, actor_attributes.get("image", "")),
-            (DockEvent.name, actor_attributes.get("name", "")),
-            (DockEvent.nodeIpPort, actor_attributes.get("node.addr", "")),
-            (DockEvent.nodeId, actor_attributes.get("node.id", "")),
-            (DockEvent.nodeIp, actor_attributes.get("node.ip", "")),
-            (DockEvent.nodeName, actor_attributes.get("node.name", "")),
-        ])
-        event_node.append((DockEvent.actor, actor_node))
-
-    _from = event.data.get("from", "")
-    if _from != "":
-        event_node.append((DockEvent.source, _from))
-
-    await sparql.update(
-        """
-        INSERT DATA {
-            GRAPH {{graph}} {
-                {{}}
-            }
-        }
-        """, event_node)
-
-
-@fixture
-async def get_sparql_client():
-    sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
-                          graph=IRI(ENV['MU_APPLICATION_GRAPH']))
-    yield sparql
-    await sparql.close()
-
-
-@register_event
-async def start_logging_container(event: ContainerEvent, sparql: SPARQLClient):
-    """
-    Start logging the container's logs to the database
-    """
-    if not event.status == "start":
-        return
-    if not event.attributes.get('LOG'):
-        return
-    container = await event.container
-    if container['Config']['Tty']:
-        return
-    container_concept = await create_container_log_concept(sparql, container)
-    asyncio.ensure_future(save_container_logs(event.client, event.id, event.time, sparql, container_concept))
-    logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
-
-
-@register_event
-async def start_logging_container_stats(event: ContainerEvent, sparql: SPARQLClient):
-    """
-    Start logging the container stats to the database
-    """
-    if not event.status == "start":
-        return
-    if not event.attributes.get('STATS'):
-        return
-    container = await event.container
-    asyncio.ensure_future(save_container_stats(event.client, event.id, event.time, sparql))
-    logger.info("Logging container %s", container['Id'][:12])
-
-
-@on_startup
-async def start_logging_existing_containers(docker: APIClient, sparql: SPARQLClient):
-    """
-    Start logging the existing container's logs to the database on startup
-    """
-    now = datetime.utcnow()
-    containers = await docker.containers()
-    for container in containers:
-        container = await docker.inspect_container(container['Id'])
-        if not container['Config']['Labels'].get('LOG'):
-            continue
-        if container['Config']['Tty']:
-            continue
-        container_concept = await create_container_log_concept(sparql, container)
-        asyncio.ensure_future(save_container_logs(docker, container['Id'], now, sparql, container_concept))
-        logger.info("Logging container %s into %s", container['Id'][:12], container_concept)
-
-
-@on_startup
-async def start_logging_existing_containers_stats(docker: APIClient, sparql: SPARQLClient):
-    """
-    Start logging the existing container's stats to the database on startup
-    """
-    now = datetime.utcnow()
-    containers = await docker.containers()
-    for container in containers:
-        container = await docker.inspect_container(container['Id'])
-        if not container['Config']['Labels'].get('STATS'):
-            continue
-        asyncio.ensure_future(save_container_stats(docker, container['Id'], now, sparql))
-        logger.info("Logging container %s", container['Id'][:12])
