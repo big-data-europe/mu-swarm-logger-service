@@ -1,16 +1,10 @@
 import asyncio
-import importlib
 import logging
-import os, sys
-from os import environ as ENV
 
 __all__ = [
     "Event", "ContainerEvent", "cleanup_fixtures", "register_event",
     "run_on_startup_coroutines", "send_event",
 ]
-
-
-DEBUG = ENV.get("ENV", "prod").startswith("dev")
 
 
 logger = logging.getLogger(__name__)
@@ -131,11 +125,6 @@ def register_event(coroutine):
     A decorator that can be used to register a coroutine as a receiver of
     Docker events
     """
-    module_name = coroutine.__module__
-    module = sys.modules[module_name]
-    stat_info = os.stat(module.__file__)
-    if module_name not in module_mtimes:
-        module_mtimes[module_name] = stat_info.st_mtime
     event_handlers.append(coroutine)
 
 
@@ -202,48 +191,6 @@ def get_kwargs_for_fixtures(func, fixtures):
 def list_handlers(event):
     """
     List all the handlers for a specific type of event
-    """
-    handlers = filter_handlers(event)
-    if DEBUG:
-        changes = detect_changes(handlers)
-        if changes:
-            logger.debug("Reloading modules: %s", ", ".join(changes.keys()))
-            reload_modules(changes)
-            handlers = filter_handlers(event)
-    return handlers
-
-
-def detect_changes(handlers):
-    """
-    Detect changes in the code source
-    """
-    changes = {}
-    for coroutine in handlers:
-        module_name = coroutine.__module__
-        module = sys.modules[module_name]
-        stat_info = os.stat(module.__file__)
-        if module_mtimes[module_name] != stat_info.st_mtime:
-            changes[module_name] = stat_info.st_mtime
-    return changes
-
-
-def reload_modules(changes):
-    """
-    Reload the modules that have changes
-    """
-    for module_name, st_mtime in changes.items():
-        event_handlers[:] = [
-            x
-            for x in event_handlers
-            if x.__module__ != module_name
-        ]
-        importlib.reload(sys.modules[module_name])
-        module_mtimes[module_name] = st_mtime
-
-
-def filter_handlers(event):
-    """
-    Filter the handlers for a specific type of event
     """
     event_type = type(event)
     return [
