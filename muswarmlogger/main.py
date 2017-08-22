@@ -33,11 +33,11 @@ async def run():
     docker_args = kwargs_from_env()
     docker = APIClient(**docker_args)
     try:
-        parameters = await startup_fixtures(docker)
-        await run_on_startup_coroutines(parameters)
+        fixtures = await startup_fixtures(docker)
+        await run_on_startup_coroutines(fixtures)
         async for x in docker.events(decode=True):
             event = Event.new(docker, x)
-            asyncio.ensure_future(send_event(event, parameters))
+            asyncio.ensure_future(send_event(event, fixtures))
     except asyncio.CancelledError:
         for task in asyncio.Task.all_tasks():
             if task is not asyncio.Task.current_task() and not task.done():

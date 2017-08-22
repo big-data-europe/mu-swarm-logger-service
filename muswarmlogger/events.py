@@ -89,13 +89,13 @@ class ContainerEvent(Event):
         return self.data['status']
 
 
-async def send_event(event, parameters):
+async def send_event(event, fixtures):
     """
     Send the Docker event to all the registered hooks
     """
     coros_or_futures = []
     for handler in list_handlers(event):
-        kwargs = get_kwargs_for_parameters(handler, [event] + parameters)
+        kwargs = get_kwargs_for_fixtures(handler, [event] + fixtures)
         coros_or_futures.append(handler(**kwargs))
     results = await asyncio.gather(*coros_or_futures, return_exceptions=True)
     exceptions = filter(lambda x: isinstance(x, BaseException), results)
@@ -106,13 +106,13 @@ async def send_event(event, parameters):
             logger.exception("An error occurred")
 
 
-async def run_on_startup_coroutines(parameters):
+async def run_on_startup_coroutines(fixtures):
     """
     This function starts all the on_startup coroutines
     """
     for coroutine in on_startup_coroutines:
         try:
-            kwargs = get_kwargs_for_parameters(coroutine, parameters)
+            kwargs = get_kwargs_for_fixtures(coroutine, fixtures)
             await coroutine(**kwargs)
         except Exception:
             logger.exception("Startup coroutine failed")
@@ -160,7 +160,7 @@ async def startup_fixtures(docker):
             raise RuntimeError("Cannot resolve fixture dependencies: %r"
                                % fixture_coroutines)
         coroutine = fixture_coroutines.pop(0)
-        kwargs = get_kwargs_for_parameters(coroutine, fixtures)
+        kwargs = get_kwargs_for_fixtures(coroutine, fixtures)
         try:
             async_gen = coroutine(**kwargs)
         except TypeError:
@@ -186,15 +186,15 @@ async def cleanup_fixtures():
             logger.exception("While cleaning-up fixture %r", async_gen)
 
 
-def get_kwargs_for_parameters(func, parameters):
+def get_kwargs_for_fixtures(func, fixtures):
     """
     Get the keyword arguments passed to a function according to the type
-    annotations of that function and the list of possible parameters
+    annotations of that function and the list of possible fixtures
     """
     return {
         key: p
         for key, type_ in func.__annotations__.items()
-        for p in parameters
+        for p in fixtures
         if isinstance(p, type_)
     }
 
