@@ -2,13 +2,12 @@ import asyncio
 import importlib
 import logging
 from aiodockerpy import APIClient
-from aiosparql.client import SPARQLClient
-from aiosparql.syntax import IRI
 from docker.utils.utils import kwargs_from_env
 from os import environ as ENV
 
 from muswarmlogger.events import (
-    Event, run_on_startup_coroutines, send_event)
+    Event, cleanup_fixtures, run_on_startup_coroutines, send_event,
+    startup_fixtures)
 
 
 logger = logging.getLogger(__name__)
@@ -33,10 +32,8 @@ async def run():
     """
     docker_args = kwargs_from_env()
     docker = APIClient(**docker_args)
-    sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
-                          graph=IRI(ENV['MU_APPLICATION_GRAPH']))
     try:
-        parameters = [sparql, docker]
+        parameters = await startup_fixtures(docker)
         await run_on_startup_coroutines(parameters)
         async for x in docker.events(decode=True):
             event = Event.new(docker, x)
@@ -52,5 +49,5 @@ async def run():
                         logger.exception("An error occurred")
         raise
     finally:
+        await cleanup_fixtures()
         await docker.close()
-        await sparql.close()

@@ -5,8 +5,8 @@ import os, sys
 from os import environ as ENV
 
 __all__ = [
-    "Event", "ContainerEvent", "register_event", "run_on_startup_coroutines",
-    "send_event",
+    "Event", "ContainerEvent", "cleanup_fixtures", "register_event",
+    "run_on_startup_coroutines", "send_event",
 ]
 
 
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 on_startup_coroutines = []
 event_handlers = []
 module_mtimes = {}
+fixture_coroutines = []
+fixture_generators = []
 
 
 class Event:
@@ -135,6 +137,53 @@ def register_event(coroutine):
     if module_name not in module_mtimes:
         module_mtimes[module_name] = stat_info.st_mtime
     event_handlers.append(coroutine)
+
+
+def fixture(coroutine):
+    """
+    A decorator that adds a fixture to your application, allowing it to be used
+    in any registered event very much like py.test but based on the type of the
+    annotations instead of the parameter name. You can even add fixture
+    dependencies in your fixtures.
+    """
+    fixture_coroutines.append(coroutine)
+
+
+async def startup_fixtures(docker):
+    """
+    Start all the fixtures and return them
+    """
+    fixtures = [docker]
+    rejected = 0
+    while fixture_coroutines:
+        if rejected == len(fixture_coroutines):
+            raise RuntimeError("Cannot resolve fixture dependencies: %r"
+                               % fixture_coroutines)
+        coroutine = fixture_coroutines.pop(0)
+        kwargs = get_kwargs_for_parameters(coroutine, fixtures)
+        try:
+            async_gen = coroutine(**kwargs)
+        except TypeError:
+            fixture_coroutines.append(coroutine)
+            rejected += 1
+        else:
+            rejected = 0
+            fixture_generators.append(async_gen)
+            fixture = await async_gen.__anext__()
+            fixtures.append(fixture)
+    return fixtures
+
+
+async def cleanup_fixtures():
+    """
+    Clean-up all the fixtures opened
+    """
+    for async_gen in fixture_generators:
+        try:
+            async for _ in async_gen:
+                pass
+        except Exception:
+            logger.exception("While cleaning-up fixture %r", async_gen)
 
 
 def get_kwargs_for_parameters(func, parameters):

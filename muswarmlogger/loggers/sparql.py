@@ -6,9 +6,11 @@ from aiosparql.escape import escape_string
 from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
 from datetime import datetime
 from dateutil import parser as datetime_parser
+from os import environ as ENV
 from uuid import uuid1
 
-from muswarmlogger.events import ContainerEvent, register_event, on_startup
+from muswarmlogger.events import (
+    ContainerEvent, fixture, register_event, on_startup)
 from muswarmlogger.prefixes import (
     Dct, DockContainer, DockContainerNetwork, DockEvent, DockEventActions,
     DockEventTypes, Mu, SwarmUI)
@@ -328,6 +330,14 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
             }
         }
         """, event_node)
+
+
+@fixture
+async def get_sparql_client():
+    sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
+                          graph=IRI(ENV['MU_APPLICATION_GRAPH']))
+    yield sparql
+    await sparql.close()
 
 
 @register_event
