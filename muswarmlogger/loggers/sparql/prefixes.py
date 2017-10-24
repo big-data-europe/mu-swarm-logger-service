@@ -106,6 +106,9 @@ class DockEventActions(Namespace):
     health_status = PrefixedName
     resize = PrefixedName
     start = PrefixedName
+    stop = PrefixedName
+    kill = PrefixedName
+    restart = PrefixedName
 
 
 class DockContainer(Namespace):
