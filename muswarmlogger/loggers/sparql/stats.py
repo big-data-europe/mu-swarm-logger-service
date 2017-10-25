@@ -125,6 +125,7 @@ async def save_container_stats(client, container, since, sparql):
                 'swarmui:cpuUsage': RDFTerm(':%s' % uuid_cpu_stats_cpu_usage),
                 'swarmui:systemCpuUsage': data['cpu_stats']['system_cpu_usage'],
                 'swarmui:throttlingData': RDFTerm(':%s' % uuid_cpu_stats_throttling_data),
+                'swarmui:onlineCpus': data['precpu_stats'].get('online_cpus')
             }),
             Node(':%s' % uuid_precpu_stats_cpu_usage, [
                 (RDF.type, SwarmUI.CpuUsage),
@@ -150,6 +151,7 @@ async def save_container_stats(client, container, since, sparql):
                 'swarmui:cpuUsage': RDFTerm(':%s' % uuid_precpu_stats_cpu_usage),
                 'swarmui:systemCpuUsage': data['precpu_stats'].get('system_cpu_usage'),
                 'swarmui:throttlingData': RDFTerm(':%s' % uuid_precpu_stats_throttling_data),
+                'swarmui:onlineCpus': data['precpu_stats'].get('online_cpus')
             }),
             Node(':%s' % uuid_memory_stats_stats, {
                 RDF.type: SwarmUI.StatsInMemory,
