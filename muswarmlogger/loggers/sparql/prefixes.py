@@ -17,6 +17,7 @@ class SwarmUI(Namespace):
     ThrottlingData = PrefixedName
     PrecpuStats = PrefixedName
     Stats = PrefixedName
+    StatsInMemory = PrefixedName
     MemoryStats = PrefixedName
     Network = PrefixedName
     Stats = PrefixedName
