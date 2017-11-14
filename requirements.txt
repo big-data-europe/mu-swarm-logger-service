@@ -1,4 +1,4 @@
 aiodockerpy == 0.8.0
 aiohttp == 2.0.1
-aiosparql < 0.11
 python-dateutil == 2.6.0
+-e git+https://github.com/asjongers/aiosparql.git@9fb8c4b4630a441b56c473d90c1dbc1b2d48bc22#egg=aiosparql
