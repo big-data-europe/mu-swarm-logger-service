@@ -115,4 +115,6 @@ docker-compose up
 
 ## Notes
 
+**This branch of the swarm-logger uses a customized forked version of aiosparql (https://github.com/asjongers/aiosparql) in order to bypass Virtuoso's transaction log. However, this limits it to be used with Virtuoso. Revert back to the original aiosparql (https://github.com/aio-libs/aiosparql) if your database is not Virtuoso.**
+
 Additional information (e.g. events ontology) can be found in [Documentation](./docs/README.md).
