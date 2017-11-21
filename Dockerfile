@@ -5,6 +5,9 @@ ENV MU_SPARQL_ENDPOINT http://database:8890/sparql
 ENV MU_APPLICATION_GRAPH http://mu.semte.ch/application
 ENV ENV prod
 
+ENV ES_HOST elasticsearch
+ENV ES_PORT 9200
+
 ENV LOG_DIR /logs
 
 VOLUME $LOG_DIR

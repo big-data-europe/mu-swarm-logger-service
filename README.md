@@ -37,6 +37,14 @@ docker run -i --rm -p 80:80 -l LOG=1 nginx
 docker run -i --rm -p 80:80 -l STATS=true nginx
 ```
 
+* All the containers that have a label `ELASTIC` will have their stats pushed into an Elasticsearch instance.
+  * Set the **ES_HOST** environment variable to set the host (without *http://*). Default: *elasticsearch*.
+  * Set the **ES_PORT** environment variable to set the port. Default: *9200*.
+
+```
+docker run -i --rm -p 80:80 -l ELASTIC=true nginx
+```
+
 
 
 ## Overrides

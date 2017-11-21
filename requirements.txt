@@ -2,3 +2,4 @@ aiodockerpy == 0.8.0
 aiohttp == 2.0.1
 aiosparql < 0.11
 python-dateutil == 2.6.0
+elasticsearch == 6.0.0

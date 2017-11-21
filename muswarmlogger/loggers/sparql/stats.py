@@ -5,6 +5,8 @@ from aiosparql.client import SPARQLClient
 from aiosparql.syntax import Node, RDF, RDFTerm, Triples
 from datetime import datetime
 from dateutil import parser as datetime_parser
+from elasticsearch import Elasticsearch
+from os import environ as ENV
 from uuid import uuid1
 
 from muswarmlogger.events import ContainerEvent, register_event, on_startup
@@ -207,3 +209,32 @@ async def save_container_stats(client, container, since, sparql):
             """, triples)
 
     logger.info("Finished logging stats (container %s is stopped)", container[:12])
+
+
+
+@register_event
+async def start_posting_elasticsearch(event: ContainerEvent, sparql: SPARQLClient):
+    """
+    Start posting docker stats into an ElasticSearch instance.
+    """
+    if not event.status == "start":
+        return
+    if not event.attributes.get('ELASTIC'):
+        return
+
+    container = await event.container
+    asyncio.ensure_future(save_container_elasticsearch(event.client,
+                                                       event.id,
+                                                       ENV['ES_HOST'],
+                                                       ENV['ES_PORT']))
+    logger.info("Logging container %s in ElasticSearch", container['Id'][:12])
+
+
+async def save_container_elasticsearch(client, container, es_host, es_port):
+    """
+    Post the docker stats JSON into an ElasticSearch instance.
+    """
+    es = Elasticsearch(["{host}:{port}".format(host=es_host, port=es_port)])
+    async for data in client.stats(container, decode=True):
+        es.index(index='docker', doc_type='stats', body=data)
+    logger.info("Finished pushing stats into Elasticsearch (container %s is stopped)", container[:12])
