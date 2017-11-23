@@ -1,13 +1,13 @@
 import logging
 from aiosparql.client import SPARQLClient
-from aiosparql.syntax import Node
+from aiosparql.syntax import Node, RDF
 from datetime import datetime
 
 from muswarmlogger.events import ContainerEvent, register_event
 
 from .prefixes import (
-    DockContainer, DockContainerNetwork, DockEvent, DockEventActions,
-    DockEventTypes)
+    DockContainer, DockContainerNetwork, DockEvent, DockEventActor,
+    DockEventActions, DockEventTypes)
 
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,8 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
     _datetime = datetime.fromtimestamp(int(_time))
 
     event_id = "%s_%s" % (event_id, _timeNano)
-    event_node = Node("<dockevent:%s>" % event_id, {
-        "a": DockEventTypes.event,
+    event_node = Node(DockEvent.__iri__+ event_id, {
+        RDF.type: DockEventTypes.event,
         DockEvent.eventId: event_id,
         DockEvent.time: _time,
         DockEvent.timeNano: _timeNano,
@@ -54,7 +54,7 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
 
     if container is not None:
         container_id = "%s_%s" % (container["Id"], _timeNano)
-        container_node = Node("<dockcontainer:%s>" % container_id, {
+        container_node = Node(DockContainer.__iri__ + container_id, {
             DockContainer.id: container["Id"],
             DockContainer.name: container["Name"],
         })
@@ -68,7 +68,7 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
                 container["NetworkSettings"]["Networks"].items():
             network_id = "%s_%s" % (network["NetworkID"], _timeNano)
             network_node = Node(
-                "<dockcontainer_network:%s>" % network_id,
+                DockContainerNetwork.__iri__ + network_id,
                 {
                     DockContainerNetwork.name: name,
                     DockContainerNetwork.id: network["NetworkID"],
@@ -83,17 +83,17 @@ async def store_events(event: ContainerEvent, sparql: SPARQLClient):
     if actor != "":
         actor_id = actor.get("ID", "")
         actor_id = "%s_%s" % (actor_id, _timeNano)
-        actor_node = Node("<dockevent_actors:%s>" % actor_id, {
-            DockEvent.actorId: actor_id,
+        actor_node = Node(DockEventActor.__iri__ + actor_id, {
+            DockEventActor.actorId: actor_id,
         })
         actor_attributes = actor.get("Attributes", {})
         actor_node.extend([
-            (DockEvent.image, actor_attributes.get("image", "")),
-            (DockEvent.name, actor_attributes.get("name", "")),
-            (DockEvent.nodeIpPort, actor_attributes.get("node.addr", "")),
-            (DockEvent.nodeId, actor_attributes.get("node.id", "")),
-            (DockEvent.nodeIp, actor_attributes.get("node.ip", "")),
-            (DockEvent.nodeName, actor_attributes.get("node.name", "")),
+            (DockEventActor.image, actor_attributes.get("image", "")),
+            (DockEventActor.name, actor_attributes.get("name", "")),
+            (DockEventActor.nodeIpPort, actor_attributes.get("node.addr", "")),
+            (DockEventActor.nodeId, actor_attributes.get("node.id", "")),
+            (DockEventActor.nodeIp, actor_attributes.get("node.ip", "")),
+            (DockEventActor.nodeName, actor_attributes.get("node.name", "")),
         ])
         event_node.append((DockEvent.actor, actor_node))
 

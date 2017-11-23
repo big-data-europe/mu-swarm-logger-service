@@ -84,6 +84,18 @@ class DockEvent(Namespace):
     type = PrefixedName
 
 
+class DockEventActor(Namespace):
+    __iri__ = IRI("http://ontology.aksw.org/dockeventactor/")
+
+    actorId = PrefixedName
+    image = PrefixedName
+    name = PrefixedName
+    nodeId = PrefixedName
+    nodeIp = PrefixedName
+    nodeIpPort = PrefixedName
+    nodeName = PrefixedName
+
+
 class DockEventTypes(Namespace):
     __iri__ = IRI("http://ontology.aksw.org/dockevent/types/")
 
